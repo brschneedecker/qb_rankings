@@ -10,22 +10,30 @@ import re
 import os
 import logging
 
-def get_season(html_path: str):
+def get_season(base_html: str, year: int):
 	"""
 	Download a single season of HTML table data and return DataFrame
 
 	Args:
-	  - html_path: String, path to page with HTML table data
+	  - base_html: String, path to page with HTML table data
+	  - year: Year of data being pulled
 
 	Returns:
 	  - df: DataFrame with extracted data
 	"""
+
+	html_path = base_html.format(year=year)
+
 	try:
 		df = pd.read_html(html_path)[0]
 	except Exception as err:
 		logger.warning("Unsuccessful download from {}".format(html_path))
 	else:
 		logger.info("Download from {} complete".format(html_path))
+
+		# add column for year
+		df["year"] = year
+
 		return df
 
 def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
@@ -52,7 +60,7 @@ def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	year_list = [year for year in range(bgn_yr, end_yr + 1)]
 
 	# Get data for all years and store in list of DataFrames
-	df_list = [get_season(base_html.format(year)) for year in year_list]
+	df_list = [get_season(base_html, year) for year in year_list]
 
 	# Create list of unsuccessful downloads
 	df_fail = [check for check in df_list if check is None]
@@ -92,8 +100,8 @@ def main():
 	logger.info("Output files will be directed to {}".format(datapath))
 
 	# HTML path templates
-	pfr_path = "https://www.pro-football-reference.com/years/{}/passing.htm"
-	fo_path = "https://www.footballoutsiders.com/stats/qb{}"
+	pfr_path = "https://www.pro-football-reference.com/years/{year}/passing.htm"
+	fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
 
 	# download Pro Football Reference data
 	get_all_seasons(2002,
