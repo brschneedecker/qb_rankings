@@ -115,3 +115,11 @@ data/*/*
 !data/processed/.gitkeep
 !data/interim/.gitkeep
 
+# exclude reporting output from source control by default
+reports/*
+!reports/figures
+!reports/tables
+reports/*/*
+!reports/figures/.gitkeep
+!reports/tables/.gitkeep
+
