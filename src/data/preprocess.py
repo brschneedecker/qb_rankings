@@ -4,8 +4,11 @@ preprocess.py
 Read in downloaded data and clean for analysis
 """
 
-import pandas as pandas
+import pandas as pd
 import logging
+import os
+import re
+import glob
 
 def import_data(filepath: str):
 	"""
@@ -42,7 +45,7 @@ def fix_player_name(row):
 	# split player first and last name into a list
 	first_last = row["Player"].split(" ")
 
-    # update first name to first initial
+	# update first name to first initial
 	first_last[0] = first_last[0][0]
 
 	# combine first initial and last name into single string
@@ -51,12 +54,20 @@ def fix_player_name(row):
 	return first_initial_last_name
 
 
-def clean_pfr(src_df):
+def clean_pfr(src_df, year: int):
 	"""
 	Clean Pro Football Reference data
+
+	Args:
+	  - src_df: Raw Pro Football Reference data
+
+	Returns:
+	  - df: Cleaned Pro Football Reference data
 	"""
 
 	df = src_df.copy()
+	logger.info("Dimensions of raw PFR DataFrame: {}".format(df.shape))
+	logger.info("Columns on raw PFR DataFrame: {}".format(df.columns))
 
 	# drop interior header rows
 	df = df[df["Tm"] != "Tm"]
@@ -70,51 +81,117 @@ def clean_pfr(src_df):
 	# fix team names for teams that moved
 	df["Tm"] = df.apply(fix_team_name, axis = 1)
 
-    # remove extra characters so names match across years
+	# remove extra characters so names match across years
 	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
 
 	# fix player names to match Football Outsiders format
 	df["Player"] = df.apply(fix_player_name, axis = 1)
 
+	# add column for year
+	df["year"] = year
+
+	logger.info("Dimensions of cleaned PFR DataFrame: {}".format(df.shape))
+	logger.info("Columns on cleaned PFR DataFrame: {}".format(df.columns))
+
 	return df
 
 
-def clean_fo(src_df):
+def clean_fo(src_df, year: int):
 	"""
 	Clean Football Outsiders data
+
+	Args:
+	  - src_df: Raw Football Outsiders data
+
+	Returns:
+	  - df: Cleaned Football Outsiders data
 	"""
+
+	df = src_df.copy()
+	logger.info("Dimensions of raw FO DataFrame: {}".format(df.shape))
+	logger.info("Columns on raw FO DataFrame: {}".format(df.columns))
 
 	# rename columns
 	df.columns = list(df.iloc[0,])
 
 	# limit to columns of interest
-	df = df[["Player", "DYAR", "YAR", "DVOA", "VOA", "EYds", "DPI"]]
+	df = df[["year", "Player", "DYAR", "YAR", "DVOA", "VOA", "EYds", "DPI"]]
 
 	# remove rows with columns names
 	df = df[df["Player"] != "Player"]
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
-    
-    # remove extra characters so names match across years
+	
+	# remove extra characters so names match across years
 	df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
+
+	# add column for year
+	df["year"] = year
+
+	logger.info("Dimensions of cleaned FO DataFrame: {}".format(df.shape))
+	logger.info("Columns on cleaned FO DataFrame: {}".format(df.columns))
 	
 	return df
 
+def clean_stack(clean_func, file_pattern: str):
+	"""
+	Clean yearly files and stack into aggregate file
+	"""
+
+	# get list of files to import
+	raw_files = glob.glob(file_pattern)
+
+	# loop through PFR files to import and clean
+	clean_list = []
+	for file in raw_files:
+		raw_df = import_data(file)
+		# need to extract year from file name for this to work
+		clean_df = clean_func(raw_df)
+		clean_list.append(clean_df)
+
+	clean_stack = pd.concat(clean_list, ignore_index=True)
+
+	return clean_stack
+
 
 def merge_all(df_list: list):
+	"""
+	Merge a list of QB-season level DataFrames
+
+	Args:
+	  - df_list: List of QB-season level DataFrames to merge
+
+	Returns:
+	  - merged_df: Merged DataFrame at the QB-season level
+	"""
 
 	for df in df_list:
-		logger.info("Dimensions of {}: {}".format(df.__name__, df.shape))
+		logger.info("Dimensions of input DataFrame".format(df.shape))
 
 	# base of merged DataFrame is first DataFrame in the list
-    merge_df = df_list[0]
+	merge_df = df_list[0]
 
 	# merge all DataFrames in the list
-	for i in range(1,len(df_list))
+	for i in range(1,len(df_list)):
 		merge_df = pd.merge(merge_df, df_list[i], on=["Player","year"])
+		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, df.shape))
+
+	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
 
 	return merged_df
+
+def output_analytic(src_df, outfile: str):
+	"""
+	Output analytic file DataFrame as a .csv file
+	"""
+	try:
+		src_df.to_csv(outfile)
+	except FileNotFoundError as err:
+		logger.exception("Error saving file {}".format(outfile))
+		raise err
+	else:
+		logger.info("{} created successfully".format(outfile))
 
 
 def main():
@@ -123,22 +200,22 @@ def main():
 	"""
 	
 	# set paths to input and output data
-	raw_datapath = re.sub("/src/data", "/data/raw/{filename}", os.getcwd())
-	processed_datapath = re.sub("/src/data", "/data/processed/{filename}", os.getcwd())
+	raw_datapath = re.sub("/src/data", "/data/raw", os.getcwd())
+	processed_datapath = re.sub("/src/data", "/data/processed", os.getcwd())
+	logger.info("Input files read from {}".format(raw_datapath))
+	logger.info("Output files send to {}".format(processed_datapath))
 
-	# import data
-	pfr_raw = import_data(raw_datapath.format(filename="qb_season_pfr.csv"))
-	fo_raw = import_data(raw_datapath.format(filename="qb_season_fo.csv"))
-
-	# clean data
-	prf_clean = clean_pfr(pfr_raw)
-	fo_clean = clean_fo(fo_raw)
+	# import raw data, clean, and stack
+	pfr_clean = clean_stack(clean_pfr, raw_datapath + "/qb_season_pfr*.csv")
+	fo_clean = clean_stack(clean_fo, raw_datapath + "/qb_season_fo*.csv")
 
 	# merge data
 	clean_df_list = [prf_clean, fo_clean]
 	merged_df = merge_all(clean_df_list)
 
 	# output final DataFrame to .csv file
+	output_analytic(merged_df, processed_datapath.format(filename=qb_season_final))
+
 
 if __name__ == "__main__":
 
