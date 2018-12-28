@@ -31,10 +31,29 @@ def get_season(base_html: str, year: int):
 	else:
 		logger.info("Download from {} complete".format(html_path))
 
-		# add column for year
-		df["year"] = year
-
 		return df
+
+
+def export_season(df, outfile: str):
+	"""
+	Export single season of data to .csv file
+	"""
+
+	logger.info("Creating {}".format(outfile))
+
+	if os.path.exists(outfile):
+		logger.info("{} already exists, deleting".format(outfile))
+		os.remove(outfile)
+
+	try:
+		df.to_csv(outfile, index=False)
+	except FileNotFoundError as err:
+		logger.exception("Error saving file {}".format(outfile))
+		raise err
+	else:
+		logger.info("{} created successfully".format(outfile))
+		logger.info("Dimensions of {} are {}".format(outfile, df.shape))
+
 
 def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	"""
@@ -49,12 +68,6 @@ def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	Return:
 	  - df: DataFrame object with downloaded data
 	"""
-
-	logger.info("Creating {}".format(outfile))
-
-	if os.path.exists(outfile):
-		logger.info("{} already exists, deleting".format(outfile))
-		os.remove(outfile)
 
 	# Generate list of years for which to download data
 	year_list = [year for year in range(bgn_yr, end_yr + 1)]
@@ -71,21 +84,11 @@ def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	except AssertionError as err:
 		logger.exception("Missing {} datasets".format(len(df_fail)))
 		raise err
-	
-	# Stack data
-	df = pd.concat(df_list, ignore_index = True)
 
-	# diagnostic prints
-	logger.info("Dimensions of {} are {}".format(outfile, df.shape))
-
-	# save DataFrame as .csv file
-	try:
-		df.to_csv(outfile)
-	except FileNotFoundError as err:
-		logger.exception("Error saving file {}".format(outfile))
-		raise err
-	else:
-		logger.info("{} created successfully".format(outfile))
+	# save DataFrames as .csv files
+	for i in range(0, len(df_list)):
+		export_season(df_list[i], outfile.format(year=year_list[i]))
+		
 
 def main():
 	"""
@@ -107,13 +110,13 @@ def main():
 	get_all_seasons(2002,
 					2017,
 					pfr_path,
-					datapath.format(filename="qb_season_pfr.csv"))
+					datapath.format(filename="qb_season_pfr_{year}.csv"))
 
 	# download Football Outsiders data
 	get_all_seasons(2002,
 					2017,
 					fo_path,
-					datapath.format(filename="qb_season_fo.csv"))
+					datapath.format(filename="qb_season_fo_{year}.csv"))
 
 	logger.info("End program execution")
 
