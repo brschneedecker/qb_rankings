@@ -102,3 +102,16 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# exclude data from source control by default
+data/*
+!data/raw
+!data/external
+!data/processed
+!data/interim
+data/*/*
+!data/raw/.gitkeep
+!data/external/.gitkeep
+!data/processed/.gitkeep
+!data/interim/.gitkeep
+
