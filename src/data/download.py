@@ -116,10 +116,6 @@ def main(bgn_yr, end_yr):
 		logger.exception("Bad year arguments")
 		raise err
 
-	# set path to output data
-	datapath = os.getcwd() + "/data/raw/{filename}"
-	logger.info("Output files will be directed to {}".format(datapath))
-
 	# HTML path templates
 	pfr_path = "https://www.pro-football-reference.com/years/{year}/passing.htm"
 	fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
@@ -128,13 +124,13 @@ def main(bgn_yr, end_yr):
 	get_all_seasons(bgn_yr,
 					end_yr,
 					pfr_path,
-					datapath.format(filename="qb_season_pfr_{year}.csv"))
+					"data/raw/qb_season_pfr_{year}.csv")
 
 	# download Football Outsiders data
 	get_all_seasons(bgn_yr,
 					end_yr,
 					fo_path,
-					datapath.format(filename="qb_season_fo_{year}.csv"))
+					"data/raw/qb_season_fo_{year}.csv")
 
 	logger.info("End program execution")
 
@@ -149,12 +145,13 @@ if __name__ == "__main__":
 		print("Working directory incorrect")
 		print("Programs must be run with working directory set to 'qb_rankings'")
 		raise err
-		
+
 	# set name of log file
 	log_filename = "src/data/download.log"
 
 	# overwite any existing log file
 	if os.path.exists(log_filename):
+		print("Overwriting log {}".format(log_filename))
 		os.remove(log_filename)
 
 	# set up logger
