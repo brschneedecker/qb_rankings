@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import glob
+import click
 
 def import_data(filepath: str):
 	"""
@@ -66,8 +67,8 @@ def clean_pfr(src_df, year: int):
 	"""
 
 	df = src_df.copy()
-	logger.info("Dimensions of raw PFR DataFrame: {}".format(df.shape))
-	logger.info("Columns on raw PFR DataFrame: {}".format(df.columns))
+	logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
+	logger.info("Columns on {} raw PFR DataFrame: {}".format(year, df.columns))
 
 	# drop interior header rows
 	df = df[df["Tm"] != "Tm"]
@@ -108,14 +109,18 @@ def clean_fo(src_df, year: int):
 	"""
 
 	df = src_df.copy()
-	logger.info("Dimensions of raw FO DataFrame: {}".format(df.shape))
-	logger.info("Columns on raw FO DataFrame: {}".format(df.columns))
+	logger.info("Dimensions of {} raw FO DataFrame: {}".format(year, df.shape))
+	logger.info("Columns on {} raw FO DataFrame: {}".format(year,df.columns))
 
 	# rename columns
-	df.columns = list(df.iloc[0,])
+	if list(df.columns)[0] != "Player":
+		df.columns = list(df.iloc[0,])
+		logger.info("Columns on {} FO DataFrame after rename: {}".format(year, df.columns))
+	else:
+		logger.info("Columns were not renamed")
 
 	# limit to columns of interest
-	df = df[["year", "Player", "DYAR", "YAR", "DVOA", "VOA", "EYds", "DPI"]]
+	df = df[["Player", "DYAR", "YAR", "DVOA", "VOA", "EYds", "DPI"]]
 
 	# remove rows with columns names
 	df = df[df["Player"] != "Player"]
@@ -146,8 +151,7 @@ def clean_stack(clean_func, file_pattern: str):
 	clean_list = []
 	for file in raw_files:
 		raw_df = import_data(file)
-		# need to extract year from file name for this to work
-		clean_df = clean_func(raw_df)
+		clean_df = clean_func(raw_df, file[-8:-4])
 		clean_list.append(clean_df)
 
 	clean_stack = pd.concat(clean_list, ignore_index=True)
@@ -170,23 +174,24 @@ def merge_all(df_list: list):
 		logger.info("Dimensions of input DataFrame".format(df.shape))
 
 	# base of merged DataFrame is first DataFrame in the list
-	merge_df = df_list[0]
+	merged_df = df_list[0]
 
 	# merge all DataFrames in the list
 	for i in range(1,len(df_list)):
-		merge_df = pd.merge(merge_df, df_list[i], on=["Player","year"])
+		merged_df = pd.merge(merged_df, df_list[i], on=["Player","year"])
 		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, df.shape))
 
 	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
 
 	return merged_df
 
+
 def output_analytic(src_df, outfile: str):
 	"""
 	Output analytic file DataFrame as a .csv file
 	"""
 	try:
-		src_df.to_csv(outfile)
+		src_df.to_csv(outfile, index=False)
 	except FileNotFoundError as err:
 		logger.exception("Error saving file {}".format(outfile))
 		raise err
@@ -194,36 +199,47 @@ def output_analytic(src_df, outfile: str):
 		logger.info("{} created successfully".format(outfile))
 
 
-def main():
+@click.command()
+@click.argument('outfile', type=click.Path())
+def main(outfile):
 	"""
 	Combine all data into QB-season level analytic file
+
+	Args:
+	  - outfile: Name of cleaned analytic file
+
+	Returns: none
 	"""
-	
-	# set paths to input and output data
-	raw_datapath = re.sub("/src/data", "/data/raw", os.getcwd())
-	processed_datapath = re.sub("/src/data", "/data/processed", os.getcwd())
-	logger.info("Input files read from {}".format(raw_datapath))
-	logger.info("Output files send to {}".format(processed_datapath))
 
 	# import raw data, clean, and stack
-	pfr_clean = clean_stack(clean_pfr, raw_datapath + "/qb_season_pfr*.csv")
-	fo_clean = clean_stack(clean_fo, raw_datapath + "/qb_season_fo*.csv")
+	pfr_clean = clean_stack(clean_pfr, "data/raw/qb_season_pfr*.csv")
+	fo_clean = clean_stack(clean_fo, "data/raw/qb_season_fo*.csv")
 
 	# merge data
-	clean_df_list = [prf_clean, fo_clean]
+	clean_df_list = [pfr_clean, fo_clean]
 	merged_df = merge_all(clean_df_list)
 
 	# output final DataFrame to .csv file
-	output_analytic(merged_df, processed_datapath.format(filename=qb_season_final))
+	output_analytic(merged_df, outfile)
 
 
 if __name__ == "__main__":
 
+	# All directories in program are relative to repo root directory
+	# Verify current working directory is repo root directory before proceeding
+	try:
+		assert os.getcwd().split(os.sep)[-1] == "qb_rankings"
+	except AssertionError as err:
+		print("Working directory incorrect")
+		print("Programs must be run with working directory set to 'qb_rankings'")
+		raise err
+
 	# set name of log file
-	log_filename = "preprocess.log"
+	log_filename = "src/data/preprocess.log"
 
 	# overwite any existing log file
 	if os.path.exists(log_filename):
+		print("Overwriting log {}".format(log_filename))
 		os.remove(log_filename)
 
 	# set up logger
@@ -234,5 +250,4 @@ if __name__ == "__main__":
 
 	logger = logging.getLogger(__name__)
 
-	# begin execution
 	main()
