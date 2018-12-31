@@ -9,6 +9,7 @@ import pandas as pd
 import re
 import os
 import logging
+import click
 
 def get_season(base_html: str, year: int):
 	"""
@@ -89,17 +90,34 @@ def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	for i in range(0, len(df_list)):
 		export_season(df_list[i], outfile.format(year=year_list[i]))
 		
-
-def main():
+@click.command()
+@click.argument('bgn_yr')
+@click.argument('end_yr')
+def main(bgn_yr, end_yr):
 	"""
 	Download QB data for a given year range from Pro Football Reference
 	and Football Outsiders and store as .csv files
+
+	Args:
+	  - bgn_yr: First year of data to analyze
+	  - end_yr: Last year of data to analyze
+	  - root_path: Location of qb_rankings repository
+
+	Returns: None
 	"""
 
 	logger.info("Starting program execution")
 
+	# Verify begin/end year can be converted to integer
+	try:
+		bgn_yr = int(bgn_yr)
+		end_yr = int(end_yr)
+	except ValueError as err:
+		logger.exception("Bad year arguments")
+		raise err
+
 	# set path to output data
-	datapath = re.sub("/src/data", "/data/raw/{filename}", os.getcwd())
+	datapath = os.getcwd() + "/data/raw/{filename}"
 	logger.info("Output files will be directed to {}".format(datapath))
 
 	# HTML path templates
@@ -107,23 +125,33 @@ def main():
 	fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
 
 	# download Pro Football Reference data
-	get_all_seasons(2002,
-					2017,
+	get_all_seasons(bgn_yr,
+					end_yr,
 					pfr_path,
 					datapath.format(filename="qb_season_pfr_{year}.csv"))
 
 	# download Football Outsiders data
-	get_all_seasons(2002,
-					2017,
+	get_all_seasons(bgn_yr,
+					end_yr,
 					fo_path,
 					datapath.format(filename="qb_season_fo_{year}.csv"))
 
 	logger.info("End program execution")
 
+
 if __name__ == "__main__":
 
+	# All directories in program are relative to repo root directory
+	# Verify current working directory is repo root directory before proceeding
+	try:
+		assert os.getcwd().split(os.sep)[-1] == "qb_rankings"
+	except AssertionError as err:
+		print("Working directory incorrect")
+		print("Programs must be run with working directory set to 'qb_rankings'")
+		raise err
+		
 	# set name of log file
-	log_filename = "download.log"
+	log_filename = "src/data/download.log"
 
 	# overwite any existing log file
 	if os.path.exists(log_filename):
