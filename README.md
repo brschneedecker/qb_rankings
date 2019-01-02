@@ -17,3 +17,4 @@ NFL QB Analysis
 ...might set a minimum number of total games or limit to DVOA qualifiers
 6. Plot QB DVOA, DYAR 
 7. Update plotting to use preprocessing program outputs
+8. Elite-system-fraud with multi-category logistic regression
