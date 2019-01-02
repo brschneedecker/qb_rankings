@@ -1,6 +1,10 @@
 # qb_rankings
 NFL QB Analysis
 
+# Repo To-do
+1. Add list of package dependencies
+2. Add run instructions to README.md
+
 # Pending Improvements
 1. Number data processing programs to reflect order?
 ...1. download.py --> 00_download.py
