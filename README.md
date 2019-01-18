@@ -17,3 +17,4 @@ NFL QB Analysis
 ...might set a minimum number of total games or limit to DVOA qualifiers
 6. Plot QB DVOA, DYAR 
 7. Update plotting to use preprocessing program outputs
+8. Look into using this for diagnostics: https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.value_counts.html
