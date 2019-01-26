@@ -18,10 +18,10 @@ def import_data(filepath: str):
 	try:
 		df = pd.read_csv(filepath)
 	except FileNotFoundError as err:
-		logger.info("{} not found".format(filepath))
+		# logger.info("{} not found".format(filepath))
 		raise err
 	else:
-		logger.info("Read-in of {} was successful".format(filepath))
+		# logger.info("Read-in of {} was successful".format(filepath))
 		return df
 
 
@@ -55,12 +55,24 @@ def fix_player_name(row):
 	return first_initial_last_name
 
 
+def calc_qb_wins(row):
+	"""
+	Calculate QB wins from record. Count ties as 0.5 wins
+	"""
+	W_L_T = [float(value) for value in row["QBrec"].split("-")]
+
+	wins = W_L_T[0] + (W_L_T[2]*0.5)
+
+	return wins
+
+
 def clean_pfr(src_df, year: int):
 	"""
 	Clean Pro Football Reference data
 
 	Args:
 	  - src_df: Raw Pro Football Reference data
+	  - year: integer representing year of data being cleaned
 
 	Returns:
 	  - df: Cleaned Pro Football Reference data
@@ -70,11 +82,17 @@ def clean_pfr(src_df, year: int):
 	logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw PFR DataFrame: {}".format(year, df.columns))
 
+	# add column for year
+	df["year"] = year
+
 	# drop interior header rows
 	df = df[df["Tm"] != "Tm"]
 
 	# Restrict to primary starting QBs
 	df = df[df["Pos"] == "QB"]
+
+	# Rename sack yards column
+	df = df.rename(index=str, columns={"Yds.1":"SkYds"})
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -82,14 +100,14 @@ def clean_pfr(src_df, year: int):
 	# fix team names for teams that moved
 	df["Tm"] = df.apply(fix_team_name, axis = 1)
 
+	# calcualte QB wins
+	df["QBwins"] = df.apply(calc_qb_wins, axis=1)
+
 	# remove extra characters so names match across years
 	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
 
 	# fix player names to match Football Outsiders format
 	df["Player"] = df.apply(fix_player_name, axis = 1)
-
-	# add column for year
-	df["year"] = year
 
 	logger.info("Dimensions of cleaned PFR DataFrame: {}".format(df.shape))
 	logger.info("Columns on cleaned PFR DataFrame: {}".format(df.columns))
@@ -103,6 +121,7 @@ def clean_fo(src_df, year: int):
 
 	Args:
 	  - src_df: Raw Football Outsiders data
+	  - year: integer representing year of data being cleaned
 
 	Returns:
 	  - df: Cleaned Football Outsiders data
@@ -110,7 +129,7 @@ def clean_fo(src_df, year: int):
 
 	df = src_df.copy()
 	logger.info("Dimensions of {} raw FO DataFrame: {}".format(year, df.shape))
-	logger.info("Columns on {} raw FO DataFrame: {}".format(year,df.columns))
+	logger.info("Columns on {} raw FO DataFrame: {}".format(year, df.columns))
 
 	# rename columns
 	if list(df.columns)[0] != "Player":
@@ -119,11 +138,22 @@ def clean_fo(src_df, year: int):
 	else:
 		logger.info("Columns were not renamed")
 
-	# limit to columns of interest
-	df = df[["Player", "DYAR", "YAR", "DVOA", "VOA", "EYds", "DPI"]]
+	# add column for year
+	df["year"] = year
 
 	# remove rows with columns names
 	df = df[df["Player"] != "Player"]
+
+	# remove % symbol from DVOA and VOA so values convert to numeric
+	df["DVOA"] = [re.sub("[%]", "", value) for value in df["DVOA"]]	
+	df["VOA"] = [re.sub("[%]", "", value) for value in df["VOA"]]
+
+	# split DPI into two columns: dpi_count and dpi_yards
+	df["dpi_count"] = [value.split("/")[0] for value in df["DPI"]]
+	df["dpi_yards"] = [value.split("/")[1] for value in df["DPI"]]
+
+	# limit to columns of interest
+	df = df[["Player", "year", "DYAR", "YAR", "DVOA", "VOA", "EYds", "dpi_count", "dpi_yards"]]
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -131,13 +161,56 @@ def clean_fo(src_df, year: int):
 	# remove extra characters so names match across years
 	df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
 
-	# add column for year
-	df["year"] = year
-
 	logger.info("Dimensions of cleaned FO DataFrame: {}".format(df.shape))
 	logger.info("Columns on cleaned FO DataFrame: {}".format(df.columns))
 	
 	return df
+
+def clean_otc(src_df, year: int):
+	"""
+	Clean Over The Cap data
+
+	Args:
+	  - src_df: Raw Over The Cap data
+	  - year: integer representing year of data being cleaned
+
+	Returns:
+	  - df: Cleaned Over The Cap data
+	"""
+
+	# import team name crosswalk
+	xwalk_df = import_data("data/external/team_name_xwalk.csv")
+
+	df = src_df.copy()
+	logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
+	logger.info("Columns on {} raw OTC DataFrame: {}".format(year,df.columns))
+
+	# merge crosswalk to get standardized team name for later merges
+	df = pd.merge(df, xwalk_df, how="left", left_on="Team", right_on="mascot")
+
+	# find a way to print this to log
+	team_map = df[["Team", "team"]].drop_duplicates()
+
+	# fix player names to match Football Outsiders format
+	df["Player"] = df.apply(fix_player_name, axis = 1)
+
+	# limit to desired columns
+	df = df[["Player", "team", "Salary Cap Value"]]
+
+	# add column for year
+	df["year"] = year
+
+	# remove [$,] symbols from Salary Cap Value so values convert to numeric
+	df["Salary Cap Value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
+
+	# convert columns with numeric data to numeric object type
+	df = df.apply(pd.to_numeric, errors="ignore")
+
+	logger.info("Dimensions of cleaned OTC DataFrame: {}".format(df.shape))
+	logger.info("Columns on cleaned OTC DataFrame: {}".format(df.columns))
+
+	return df
+
 
 def clean_stack(clean_func, file_pattern: str):
 	"""
@@ -171,15 +244,15 @@ def merge_all(df_list: list):
 	"""
 
 	for df in df_list:
-		logger.info("Dimensions of input DataFrame".format(df.shape))
+		logger.info("Dimensions of input DataFrame: {}".format(df.shape))
 
 	# base of merged DataFrame is first DataFrame in the list
 	merged_df = df_list[0]
 
 	# merge all DataFrames in the list
 	for i in range(1,len(df_list)):
-		merged_df = pd.merge(merged_df, df_list[i], on=["Player","year"])
-		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, df.shape))
+		merged_df = pd.merge(merged_df, df_list[i], how="left", on=["Player","year"])
+		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, merged_df.shape))
 
 	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
 
@@ -214,10 +287,14 @@ def main(outfile):
 	# import raw data, clean, and stack
 	pfr_clean = clean_stack(clean_pfr, "data/raw/qb_season_pfr*.csv")
 	fo_clean = clean_stack(clean_fo, "data/raw/qb_season_fo*.csv")
+	otc_clean = clean_stack(clean_otc, "data/raw/qb_salary*.csv")
 
-	# merge data
-	clean_df_list = [pfr_clean, fo_clean]
+	# merge data, first item in list defines population for merge
+	clean_df_list = [pfr_clean, fo_clean, otc_clean]
 	merged_df = merge_all(clean_df_list)
+
+	print("Info on final analytic file")
+	merged_df.info()
 
 	# output final DataFrame to .csv file
 	output_analytic(merged_df, outfile)

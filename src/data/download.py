@@ -119,6 +119,7 @@ def main(bgn_yr, end_yr):
 	# HTML path templates
 	pfr_path = "https://www.pro-football-reference.com/years/{year}/passing.htm"
 	fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
+	otc_path = "https://overthecap.com/position/quarterback/{year}/"
 
 	# download Pro Football Reference data
 	get_all_seasons(bgn_yr,
@@ -131,6 +132,13 @@ def main(bgn_yr, end_yr):
 					end_yr,
 					fo_path,
 					"data/raw/qb_season_fo_{year}.csv")
+
+	# download Over The Cap data
+	get_all_seasons(bgn_yr,
+					end_yr,
+					otc_path,
+					"data/raw/qb_salary_{year}.csv")
+
 
 	logger.info("End program execution")
 
