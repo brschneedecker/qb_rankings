@@ -18,3 +18,5 @@ NFL QB Analysis
 6. Plot QB DVOA, DYAR 
 7. Update plotting to use preprocessing program outputs
 8. Elite-system-fraud with multi-category logistic regression
+9. Look into using this for diagnostics: https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.value_counts.html
+10. pd.crosstab
