@@ -81,7 +81,7 @@ def fix_player_name(row):
 
 	Returns:
 	  - first_initial_last_name: Player name reformated as first initial
-	                             and last name
+								 and last name
 	"""
 
 	# split player first and last name into a list
@@ -239,15 +239,15 @@ def clean_fo(src_df, year: int):
 
 	# limit to columns of interest
 	df = df[["player", 
-	         "team", 
-	         "year", 
-	         "DYAR", 
-	         "YAR", 
-	         "DVOA", 
-	         "VOA", 
-	         "efctv_yds", 
-	         "dpi_count", 
-	         "dpi_yards"]]
+			 "team", 
+			 "year", 
+			 "DYAR", 
+			 "YAR", 
+			 "DVOA", 
+			 "VOA", 
+			 "efctv_yds", 
+			 "dpi_count", 
+			 "dpi_yards"]]
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -295,6 +295,9 @@ def clean_otc(src_df, year: int):
 	# limit to desired columns
 	df = df[["player", "team", "year", "salary_cap_value"]]
 
+	# get row with maximum salary within a given player-team-year combo
+	df = df.groupby(["player", "team", "year"], as_index=False)["salary_cap_value"].max()
+
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
 
@@ -311,11 +314,11 @@ def clean_stack(clean_func, file_pattern: str):
 	Args:
 	  - clean_func: Function used to clean specified data
 	  - file_pattern: String representing file path pattern to search for 
-	                  .csv files to import and clean
+					  .csv files to import and clean
 
 	Returns:
 	  - clean_stack: Stacked DataFrame of all cleaned data for a given
-	                 file pattern
+					 file pattern
 	"""
 
 	# get list of files to import
@@ -352,51 +355,67 @@ def merge_all(df_list: list):
 
 	# merge all DataFrames in the list
 	for i in range(1,len(df_list)):
+		
+		# get DataFrame shape prior to merge
+		pre_merge_shape = merged_df.shape
+		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, pre_merge_shape))
+
+		# merge iTH DataFrame in list to aggregate DataFrame
 		merged_df = pd.merge(merged_df, df_list[i], 
-			                 how="left", 
-			                 on=["player", "team", "year"])
-		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, merged_df.shape))
+							 how="left", 
+							 on=["player", "team", "year"])
+
+		# get DataFrame shape after merge
+		post_merge_shape = merged_df.shape
+		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, post_merge_shape))
+
+		# verify row count doesn't shape between merges
+		try:
+			assert(pre_merge_shape[0] == post_merge_shape[0])
+		except AssertionError as err:
+			logger.exception("Record count changed after merge")
+			raise err
 
 	# Reorder columns
 	merged_df = merged_df[["player",
-	         "team",
-	         "year",
-	         "age",
-	         "games",
-	         "games_started",
-	         "qb_wins",
-	         "att",
-	         "cmp",
-	         "cmp_pct",
-	         "yds",
-	         "yds_per_game",
-	         "yds_per_att",
-	         "yds_per_cmp",
-	         "sacks",
-	         "sack_yds",
-	         "sack_pct", 
-	         "dpi_count", 
-	         "dpi_yards",
-	         "adj_yds_per_att",
-	         "net_yds_per_att",
-	         "adj_net_yds_per_att",
-	         "td",
-	         "td_pct",
-	         "int",
-	         "int_pct",
-	         "fourth_qtr_comebacks",
-	         "game_winning_drives",
-	         "qb_rating",
-	         "QBR", 
-	         "DYAR", 
-	         "YAR", 
-	         "DVOA", 
-	         "VOA", 
-	         "efctv_yds",
-	         "salary_cap_value"]]
+			 "team",
+			 "year",
+			 "age",
+			 "games",
+			 "games_started",
+			 "qb_wins",
+			 "att",
+			 "cmp",
+			 "cmp_pct",
+			 "yds",
+			 "yds_per_game",
+			 "yds_per_att",
+			 "yds_per_cmp",
+			 "sacks",
+			 "sack_yds",
+			 "sack_pct", 
+			 "dpi_count", 
+			 "dpi_yards",
+			 "adj_yds_per_att",
+			 "net_yds_per_att",
+			 "adj_net_yds_per_att",
+			 "td",
+			 "td_pct",
+			 "int",
+			 "int_pct",
+			 "fourth_qtr_comebacks",
+			 "game_winning_drives",
+			 "qb_rating",
+			 "QBR", 
+			 "DYAR", 
+			 "YAR", 
+			 "DVOA", 
+			 "VOA", 
+			 "efctv_yds",
+			 "salary_cap_value"]]
 
 	# sort DataFrame by player, team, year
-	merged_df = merged_df.sort_values(["player", "team", "year"])
+	merged_df = merged_df.sort_values(["player", "year", "team"])
 
 	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
 
