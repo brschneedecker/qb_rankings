@@ -132,11 +132,8 @@ def clean_pfr(src_df, year: int):
 	# add column for year
 	df["year"] = year
 
-	# drop interior header rows
-	df = df[df["Tm"] != "Tm"]
-
-	# Restrict to primary starting QBs
-	df = df[df["Pos"] == "QB"]
+	# drop interior header rows and restrict to starting QBs
+	df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
 	# Rename sack yards column
 	df = df.rename(index=str, columns={"Yds.1":"SkYds"})
@@ -192,7 +189,7 @@ def clean_fo(src_df, year: int):
 	df["year"] = year
 
 	# remove rows with columns names
-	df = df[df["Player"] != "Player"]
+	df = df.loc[df["Player"] != "Player"]
 
 	# remove % symbol from DVOA and VOA so values convert to numeric
 	df["DVOA"] = df.apply(lambda row: rmv_chars(row, "%", "DVOA"), axis=1)
