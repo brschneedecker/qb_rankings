@@ -2,6 +2,11 @@
 preprocess.py
 
 Read in downloaded data and clean for analysis
+
+Data is read from the following sources:
+  - Pro Football Reference
+  - Football Outsiders
+  - Over The Cap
 """
 
 import pandas as pd
@@ -14,6 +19,12 @@ import click
 def import_data(filepath: str):
 	"""
 	Import data from .csv
+
+	Args:
+	  - filepath: Path of file to import
+
+	Returns:
+	  - df: Imported DataFrame
 	"""
 	try:
 		df = pd.read_csv(filepath)
@@ -23,7 +34,7 @@ def import_data(filepath: str):
 	else:
 		logger.info("Read-in of {} was successful".format(filepath))
 		return df
-		
+
 
 def rmv_chars(row, chars_to_rmv: str, src_column: str) -> str:
 	"""
@@ -64,6 +75,13 @@ def fix_team_name(row):
 def fix_player_name(row):
 	"""
 	Remaps player names to [first initial].[last name]
+
+	Args:
+	  - row: DataFrame row with Player column
+
+	Returns:
+	  - first_initial_last_name: Player name reformated as first initial
+	                             and last name
 	"""
 
 	# split player first and last name into a list
@@ -81,6 +99,12 @@ def fix_player_name(row):
 def calc_qb_wins(row):
 	"""
 	Calculate QB wins from record. Count ties as 0.5 wins
+
+	Args:
+	  - row: DataFrame row with QBrec column
+
+	Returns:
+	  - wins: number of wins
 	"""
 	W_L_T = [float(value) for value in row["QBrec"].split("-")]
 
@@ -254,6 +278,15 @@ def clean_otc(src_df, year: int):
 def clean_stack(clean_func, file_pattern: str):
 	"""
 	Clean yearly files and stack into aggregate file
+
+	Args:
+	  - clean_func: Function used to clean specified data
+	  - file_pattern: String representing file path pattern to search for 
+	                  .csv files to import and clean
+
+	Returns:
+	  - clean_stack: Stacked DataFrame of all cleaned data for a given
+	                 file pattern
 	"""
 
 	# get list of files to import
@@ -303,6 +336,12 @@ def merge_all(df_list: list):
 def output_analytic(src_df, outfile: str):
 	"""
 	Output analytic file DataFrame as a .csv file
+
+	Args:
+	  - src_df: DataFrame to export
+
+	Returns:
+	  - outfile: filepath of exported file
 	"""
 	try:
 		src_df.to_csv(outfile, index=False)
