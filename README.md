@@ -2,7 +2,7 @@
 NFL QB Analysis
 
 ### Repo To-do
-1. Add list of package dependencies
+1. Add list of package dependencies (https://stackoverflow.com/questions/42237072/list-dependencies-in-python)
 2. Add run instructions to README.md
 
 ### Pending Improvements
