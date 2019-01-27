@@ -18,11 +18,34 @@ def import_data(filepath: str):
 	try:
 		df = pd.read_csv(filepath)
 	except FileNotFoundError as err:
-		logger.info("{} not found".format(filepath))
+		logger.exception("{} not found".format(filepath))
 		raise err
 	else:
 		logger.info("Read-in of {} was successful".format(filepath))
 		return df
+		
+
+def rmv_chars(row, chars_to_rmv: str, src_column: str) -> str:
+	"""
+	For a given row remove characters from the value in a 
+	specific column in that row
+
+	Args:
+	  - row: DataFrame row
+	  - chars_to_rmv: String characters to remove from row value
+	  - src_column: Column to apply character removal
+
+	Returns:
+	  - new_str: string with character removals applied
+	"""
+
+	try:
+		new_str = re.sub("[{}]".format(chars_to_rmv), "", row[src_column])
+	except KeyError as err:
+		logger.exception("Column {} passed to rmv_chars not present".format(src_column))
+		raise err
+	else:
+		return new_str
 
 
 def fix_team_name(row):
@@ -95,13 +118,13 @@ def clean_pfr(src_df, year: int):
 	df = df.rename(index=str, columns={"Yds.1":"SkYds"})
 
 	# fix team names for teams that moved
-	df["team"] = df.apply(fix_team_name, axis = 1)
+	df["team"] = df.apply(fix_team_name, axis=1)
 
 	# calculate QB wins
 	df["QBwins"] = df.apply(calc_qb_wins, axis=1)
 
 	# remove extra characters so names match across years
-	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
+	df["Player"] = df.apply(lambda row: rmv_chars(row, "*+", "Player"), axis=1)
 
 	# fix player names to match Football Outsiders format
 	df["Player"] = df.apply(fix_player_name, axis = 1)
@@ -148,8 +171,8 @@ def clean_fo(src_df, year: int):
 	df = df[df["Player"] != "Player"]
 
 	# remove % symbol from DVOA and VOA so values convert to numeric
-	df["DVOA"] = [re.sub("[%]", "", value) for value in df["DVOA"]]	
-	df["VOA"] = [re.sub("[%]", "", value) for value in df["VOA"]]
+	df["DVOA"] = df.apply(lambda row: rmv_chars(row, "%", "DVOA"), axis=1)
+	df["VOA"] = df.apply(lambda row: rmv_chars(row, "%", "VOA"), axis=1)
 
 	# split DPI into two columns: dpi_count and dpi_yards
 	df["dpi_count"] = [value.split("/")[0] for value in df["DPI"]]
@@ -159,7 +182,7 @@ def clean_fo(src_df, year: int):
 	df = df.rename(index=str, columns={"Team":"team"})
 	
 	# remove extra characters so names match across years
-	df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
+	df["Player"] = df.apply(lambda row: rmv_chars(row, ".", "Player"), axis=1)
 
 	# limit to columns of interest
 	df = df[["Player", 
@@ -200,7 +223,7 @@ def clean_otc(src_df, year: int):
 
 	# add column for year
 	df["year"] = year
-	
+
 	# import team name crosswalk
 	xwalk_df = import_data("data/external/team_name_xwalk.csv")
 
@@ -214,7 +237,7 @@ def clean_otc(src_df, year: int):
 	df["Player"] = df.apply(fix_player_name, axis = 1)
 
 	# remove [$,] symbols from Salary Cap Value for conversion to numeric
-	df["salary_cap_value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
+	df["salary_cap_value"] = df.apply(lambda row: rmv_chars(row, "$,", "Salary Cap Value"), axis=1)
 
 	# limit to desired columns
 	df = df[["Player", "team", "year", "salary_cap_value"]]
