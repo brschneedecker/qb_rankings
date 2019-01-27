@@ -136,13 +136,13 @@ def clean_pfr(src_df, year: int):
 	df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
 	# Rename sack yards column
-	df = df.rename(index=str, columns={"Yds.1":"SkYds"})
+	# df = df.rename(index=str, columns={"Yds.1":"SkYds"})
 
 	# fix team names for teams that moved
 	df["team"] = df.apply(fix_team_name, axis=1)
 
 	# calculate QB wins
-	df["QBwins"] = df.apply(calc_qb_wins, axis=1)
+	df["qb_wins"] = df.apply(calc_qb_wins, axis=1)
 
 	# remove extra characters so names match across years
 	df["Player"] = df.apply(lambda row: rmv_chars(row, "*+", "Player"), axis=1)
@@ -152,6 +152,34 @@ def clean_pfr(src_df, year: int):
 
 	# drop unneeded columns
 	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
+
+	# Rename columns
+	df = df.rename(index=str, columns={
+		"Player":"player",
+		"4QC":"fourth_qtr_comebacks",
+		"ANY/A":"adj_net_yds_per_att",
+		"AY/A":"adj_yds_per_att",
+		"Age":"age",
+		"Att":"att",
+		"Cmp":"cmp",
+		"Cmp%":"cmp_pct",
+		"G":"games",
+		"GS":"games_started",
+		"GWD":"game_winning_drives",
+		"Int":"int",
+		"Int%":"int_pct",
+		"NY/A":"net_yds_per_att",
+		"Rate":"qb_rating",
+		"Sk":"sacks",
+		"Sk%":"sack_pct",
+		"Yds.1":"sack_yds",
+		"TD":"td",
+		"TD%":"td_pct",
+		"Y/A":"yds_per_att",
+		"Y/C":"yds_per_cmp",
+		"Y/G":"yds_per_game",
+		"Yds":"yds"
+		})
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -198,22 +226,26 @@ def clean_fo(src_df, year: int):
 	# split DPI into two columns: dpi_count and dpi_yards
 	df["dpi_count"] = [value.split("/")[0] for value in df["DPI"]]
 	df["dpi_yards"] = [value.split("/")[1] for value in df["DPI"]]
-
-	# Rename team column
-	df = df.rename(index=str, columns={"Team":"team"})
 	
 	# remove extra characters so names match across years
 	df["Player"] = df.apply(lambda row: rmv_chars(row, ".", "Player"), axis=1)
 
+	# Rename columns
+	df = df.rename(index=str, columns={
+		"Player":"player",
+		"Team":"team",
+		"EYds":"efctv_yds"
+		})
+
 	# limit to columns of interest
-	df = df[["Player", 
+	df = df[["player", 
 	         "team", 
 	         "year", 
 	         "DYAR", 
 	         "YAR", 
 	         "DVOA", 
 	         "VOA", 
-	         "EYds", 
+	         "efctv_yds", 
 	         "dpi_count", 
 	         "dpi_yards"]]
 
@@ -255,13 +287,13 @@ def clean_otc(src_df, year: int):
 	team_map = df[["Team", "team"]].drop_duplicates()
 
 	# fix player names to match Football Outsiders format
-	df["Player"] = df.apply(fix_player_name, axis = 1)
+	df["player"] = df.apply(fix_player_name, axis = 1)
 
 	# remove [$,] symbols from Salary Cap Value for conversion to numeric
 	df["salary_cap_value"] = df.apply(lambda row: rmv_chars(row, "$,", "Salary Cap Value"), axis=1)
 
 	# limit to desired columns
-	df = df[["Player", "team", "year", "salary_cap_value"]]
+	df = df[["player", "team", "year", "salary_cap_value"]]
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -322,8 +354,49 @@ def merge_all(df_list: list):
 	for i in range(1,len(df_list)):
 		merged_df = pd.merge(merged_df, df_list[i], 
 			                 how="left", 
-			                 on=["Player", "team", "year"])
+			                 on=["player", "team", "year"])
 		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, merged_df.shape))
+
+	# Reorder columns
+	merged_df = merged_df[["player",
+	         "team",
+	         "year",
+	         "age",
+	         "games",
+	         "games_started",
+	         "qb_wins",
+	         "att",
+	         "cmp",
+	         "cmp_pct",
+	         "yds",
+	         "yds_per_game",
+	         "yds_per_att",
+	         "yds_per_cmp",
+	         "sacks",
+	         "sack_yds",
+	         "sack_pct", 
+	         "dpi_count", 
+	         "dpi_yards",
+	         "adj_yds_per_att",
+	         "net_yds_per_att",
+	         "adj_net_yds_per_att",
+	         "td",
+	         "td_pct",
+	         "int",
+	         "int_pct",
+	         "fourth_qtr_comebacks",
+	         "game_winning_drives",
+	         "qb_rating",
+	         "QBR", 
+	         "DYAR", 
+	         "YAR", 
+	         "DVOA", 
+	         "VOA", 
+	         "efctv_yds",
+	         "salary_cap_value"]]
+
+	# sort DataFrame by player, team, year
+	merged_df = merged_df.sort_values(["player", "team", "year"])
 
 	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
 
