@@ -18,10 +18,10 @@ def import_data(filepath: str):
 	try:
 		df = pd.read_csv(filepath)
 	except FileNotFoundError as err:
-		# logger.info("{} not found".format(filepath))
+		logger.info("{} not found".format(filepath))
 		raise err
 	else:
-		# logger.info("Read-in of {} was successful".format(filepath))
+		logger.info("Read-in of {} was successful".format(filepath))
 		return df
 
 
@@ -94,13 +94,10 @@ def clean_pfr(src_df, year: int):
 	# Rename sack yards column
 	df = df.rename(index=str, columns={"Yds.1":"SkYds"})
 
-	# convert columns with numeric data to numeric object type
-	df = df.apply(pd.to_numeric, errors="ignore")
-
 	# fix team names for teams that moved
-	df["Tm"] = df.apply(fix_team_name, axis = 1)
+	df["team"] = df.apply(fix_team_name, axis = 1)
 
-	# calcualte QB wins
+	# calculate QB wins
 	df["QBwins"] = df.apply(calc_qb_wins, axis=1)
 
 	# remove extra characters so names match across years
@@ -108,6 +105,12 @@ def clean_pfr(src_df, year: int):
 
 	# fix player names to match Football Outsiders format
 	df["Player"] = df.apply(fix_player_name, axis = 1)
+
+	# drop unneeded columns
+	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
+
+	# convert columns with numeric data to numeric object type
+	df = df.apply(pd.to_numeric, errors="ignore")
 
 	logger.info("Dimensions of cleaned PFR DataFrame: {}".format(df.shape))
 	logger.info("Columns on cleaned PFR DataFrame: {}".format(df.columns))
@@ -152,19 +155,32 @@ def clean_fo(src_df, year: int):
 	df["dpi_count"] = [value.split("/")[0] for value in df["DPI"]]
 	df["dpi_yards"] = [value.split("/")[1] for value in df["DPI"]]
 
-	# limit to columns of interest
-	df = df[["Player", "year", "DYAR", "YAR", "DVOA", "VOA", "EYds", "dpi_count", "dpi_yards"]]
-
-	# convert columns with numeric data to numeric object type
-	df = df.apply(pd.to_numeric, errors="ignore")
+	# Rename team column
+	df = df.rename(index=str, columns={"Team":"team"})
 	
 	# remove extra characters so names match across years
 	df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
+
+	# limit to columns of interest
+	df = df[["Player", 
+	         "team", 
+	         "year", 
+	         "DYAR", 
+	         "YAR", 
+	         "DVOA", 
+	         "VOA", 
+	         "EYds", 
+	         "dpi_count", 
+	         "dpi_yards"]]
+
+	# convert columns with numeric data to numeric object type
+	df = df.apply(pd.to_numeric, errors="ignore")
 
 	logger.info("Dimensions of cleaned FO DataFrame: {}".format(df.shape))
 	logger.info("Columns on cleaned FO DataFrame: {}".format(df.columns))
 	
 	return df
+
 
 def clean_otc(src_df, year: int):
 	"""
@@ -178,12 +194,15 @@ def clean_otc(src_df, year: int):
 	  - df: Cleaned Over The Cap data
 	"""
 
-	# import team name crosswalk
-	xwalk_df = import_data("data/external/team_name_xwalk.csv")
-
 	df = src_df.copy()
 	logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw OTC DataFrame: {}".format(year,df.columns))
+
+	# add column for year
+	df["year"] = year
+	
+	# import team name crosswalk
+	xwalk_df = import_data("data/external/team_name_xwalk.csv")
 
 	# merge crosswalk to get standardized team name for later merges
 	df = pd.merge(df, xwalk_df, how="left", left_on="Team", right_on="mascot")
@@ -194,14 +213,11 @@ def clean_otc(src_df, year: int):
 	# fix player names to match Football Outsiders format
 	df["Player"] = df.apply(fix_player_name, axis = 1)
 
+	# remove [$,] symbols from Salary Cap Value for conversion to numeric
+	df["salary_cap_value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
+
 	# limit to desired columns
-	df = df[["Player", "team", "Salary Cap Value"]]
-
-	# add column for year
-	df["year"] = year
-
-	# remove [$,] symbols from Salary Cap Value so values convert to numeric
-	df["Salary Cap Value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
+	df = df[["Player", "team", "year", "salary_cap_value"]]
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -251,7 +267,9 @@ def merge_all(df_list: list):
 
 	# merge all DataFrames in the list
 	for i in range(1,len(df_list)):
-		merged_df = pd.merge(merged_df, df_list[i], how="left", on=["Player","year"])
+		merged_df = pd.merge(merged_df, df_list[i], 
+			                 how="left", 
+			                 on=["Player", "team", "year"])
 		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, merged_df.shape))
 
 	logger.info("Dimensions of final merged DataFrame: {}".format(merged_df.shape))
