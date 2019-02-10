@@ -135,9 +135,6 @@ def clean_pfr(src_df, year: int):
 	# drop interior header rows and restrict to starting QBs
 	df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
-	# Rename sack yards column
-	# df = df.rename(index=str, columns={"Yds.1":"SkYds"})
-
 	# fix team names for teams that moved
 	df["team"] = df.apply(fix_team_name, axis=1)
 
