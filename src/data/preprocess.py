@@ -321,13 +321,10 @@ def clean_stack(clean_func, file_pattern: str):
 	# get list of files to import
 	raw_files = glob.glob(file_pattern)
 
-	# loop through PFR files to import and clean
-	clean_list = []
-	for file in raw_files:
-		raw_df = import_data(file)
-		clean_df = clean_func(raw_df, file[-8:-4])
-		clean_list.append(clean_df)
-
+	# Create a list of cleaned DataFrames from the list of raw files
+	clean_list = [clean_func(import_data(file), file[-8:-4]) for file in raw_files]
+	
+	# combine list of DataFrames into a single DataFrame
 	clean_stack = pd.concat(clean_list, ignore_index=True)
 
 	return clean_stack
