@@ -36,48 +36,31 @@ def import_data(filepath: str):
 		return df
 
 
-def rmv_chars(row, chars_to_rmv: str, src_column: str) -> str:
-	"""
-	For a given row remove characters from the value in a 
-	specific column in that row
-
-	Args:
-	  - row: DataFrame row
-	  - chars_to_rmv: String characters to remove from row value
-	  - src_column: Column to apply character removal
-
-	Returns:
-	  - new_str: string with character removals applied
-	"""
-
-	try:
-		new_str = re.sub("[{}]".format(chars_to_rmv), "", row[src_column])
-	except KeyError as err:
-		logger.exception("Column {} passed to rmv_chars not present".format(src_column))
-		raise err
-	else:
-		return new_str
-
-
-def fix_team_name(row):
+def fix_team_name(team_orig: str) -> str:
 	"""
 	Remaps team names for teams that moved
+
+	Args
+	  - team_orig: Original team name, string
+
+	Returns
+	  - team: Remapped team name, string
 	"""
-	if row["Tm"] == "STL":
+	if team_orig == "STL":
 		team = "LAR"
-	elif row["Tm"] == "SDG":
+	elif team_orig == "SDG":
 		team = "LAC"
 	else:
-		team = row["Tm"]
+		team = team_orig
 	return team
 
 
-def fix_player_name(row):
+def fix_player_name(full_name: str) -> str:
 	"""
 	Remaps player names to [first initial].[last name]
 
 	Args:
-	  - row: DataFrame row with Player column
+	  - full_name: first and last name of player, string
 
 	Returns:
 	  - first_initial_last_name: Player name reformated as first initial
@@ -85,7 +68,7 @@ def fix_player_name(row):
 	"""
 
 	# split player first and last name into a list
-	first_last = row["Player"].split(" ")
+	first_last = full_name.split(" ")
 
 	# update first name to first initial
 	first_last[0] = first_last[0][0]
@@ -96,19 +79,35 @@ def fix_player_name(row):
 	return first_initial_last_name
 
 
-def calc_qb_wins(row):
+def calc_qb_wins(qb_record: str) -> float:
 	"""
 	Calculate QB wins from record. Count ties as 0.5 wins
 
 	Args:
-	  - row: DataFrame row with QBrec column
+	  - qb_record: String in the format W-L-T, where W, L, and T
+	               are numbers representing Wins, Losses, and Ties
 
 	Returns:
-	  - wins: number of wins
+	  - wins: number of wins, float
 	"""
-	W_L_T = [float(value) for value in row["QBrec"].split("-")]
+	try:
+		W_L_T = [float(value) for value in qb_record.split("-")]
+	except ValueError as err:
+		logger.exception("Could not convert component of QB record to float")
+		raise err
 
-	wins = W_L_T[0] + (W_L_T[2]*0.5)
+	try:
+		wins = W_L_T[0] + (W_L_T[2]*0.5)
+		losses = W_L_T[1] + (W_L_T[2]*0.5)
+	except IndexError as err:
+		logger.exception("Wrong number of components in Win-Loss-Tie")
+		raise err
+
+	try:
+		assert(1<= wins + losses <= 16)
+	except AssertionError as err:
+		logger.exception("Total games in {} outside of valid range, invalid QB record".format(qb_record))
+		raise err
 
 	return wins
 
@@ -136,16 +135,16 @@ def clean_pfr(src_df, year: int):
 	df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
 	# fix team names for teams that moved
-	df["team"] = df.apply(fix_team_name, axis=1)
+	df["team"] = [fix_team_name(team) for team in df["Tm"]]
 
 	# calculate QB wins
-	df["qb_wins"] = df.apply(calc_qb_wins, axis=1)
+	df["qb_wins"] = [calc_qb_wins(record) for record in df["QBrec"]]
 
 	# remove extra characters so names match across years
-	df["Player"] = df.apply(lambda row: rmv_chars(row, "*+", "Player"), axis=1)
+	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
 
 	# fix player names to match Football Outsiders format
-	df["Player"] = df.apply(fix_player_name, axis = 1)
+	df["Player"] = [fix_player_name(player) for player in df["Player"]]
 
 	# drop unneeded columns
 	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
@@ -217,15 +216,15 @@ def clean_fo(src_df, year: int):
 	df = df.loc[df["Player"] != "Player"]
 
 	# remove % symbol from DVOA and VOA so values convert to numeric
-	df["DVOA"] = df.apply(lambda row: rmv_chars(row, "%", "DVOA"), axis=1)
-	df["VOA"] = df.apply(lambda row: rmv_chars(row, "%", "VOA"), axis=1)
+	df["DVOA"] = [re.sub("[%]", "", value) for value in df["DVOA"]]
+	df["VOA"] = [re.sub("[%]", "", value) for value in df["VOA"]]
 
 	# split DPI into two columns: dpi_count and dpi_yards
 	df["dpi_count"] = [value.split("/")[0] for value in df["DPI"]]
 	df["dpi_yards"] = [value.split("/")[1] for value in df["DPI"]]
 	
 	# remove extra characters so names match across years
-	df["Player"] = df.apply(lambda row: rmv_chars(row, ".", "Player"), axis=1)
+	df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
 
 	# Rename columns
 	df = df.rename(index=str, columns={
@@ -284,10 +283,10 @@ def clean_otc(src_df, year: int):
 	team_map = df[["Team", "team"]].drop_duplicates()
 
 	# fix player names to match Football Outsiders format
-	df["player"] = df.apply(fix_player_name, axis = 1)
+	df["player"] = [fix_player_name(player) for player in df["Player"]]
 
 	# remove [$,] symbols from Salary Cap Value for conversion to numeric
-	df["salary_cap_value"] = df.apply(lambda row: rmv_chars(row, "$,", "Salary Cap Value"), axis=1)
+	df["salary_cap_value"] = [re.sub("[$]", "", value) for value in df["Salary Cap Value"]]
 
 	# limit to desired columns
 	df = df[["player", "team", "year", "salary_cap_value"]]
@@ -363,7 +362,7 @@ def merge_all(df_list: list):
 		post_merge_shape = merged_df.shape
 		logger.info("Dimensions of DataFrame after merge {}: {}".format(i, post_merge_shape))
 
-		# verify row count doesn't shape between merges
+		# verify row count doesn't change between merges
 		try:
 			assert(pre_merge_shape[0] == post_merge_shape[0])
 		except AssertionError as err:
@@ -447,10 +446,26 @@ def main(outfile):
 	Returns: none
 	"""
 
-	# import raw data, clean, and stack
-	pfr_clean = clean_stack(clean_pfr, "data/raw/qb_season_pfr*.csv")
-	fo_clean = clean_stack(clean_fo, "data/raw/qb_season_fo*.csv")
-	otc_clean = clean_stack(clean_otc, "data/raw/qb_salary*.csv")
+	# Prepare Pro Footbal Reference data
+	try:
+		pfr_clean = clean_stack(clean_pfr, "data/raw/qb_season_pfr*.csv")
+	except Exception as err:
+		logging.exception("Pro Football Reference data prep failed")
+		raise err
+
+	# Prepare Football Outsides data
+	try:
+		fo_clean = clean_stack(clean_fo, "data/raw/qb_season_fo*.csv")
+	except Exception as err:
+		logging.exception("Football Outsiders data prep failed")
+		raise err
+
+	# Prepare Over the Cap data
+	try:
+		otc_clean = clean_stack(clean_otc, "data/raw/qb_salary*.csv")
+	except Exception as err:
+		logging.exception("Over the Cap data prep failed")
+		raise err
 
 	# merge data, first item in list defines population for merge
 	clean_df_list = [pfr_clean, fo_clean, otc_clean]
