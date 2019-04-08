@@ -1,12 +1,19 @@
 # qb_rankings
-NFL QB Analysis
+NFL QB Analysis using Python 3
 
-### Repo To-do
-1. Add list of package dependencies (https://stackoverflow.com/questions/42237072/list-dependencies-in-python)
-2. Add run instructions to README.md
+### Setup
+1. Clone this repo
+2. Install packages (see requirements.txt)
+---
 
+### Run Instructions
+1. Navigate to repo directory
+2. Update makefile bgn_yr and end_yr to get desired analysis period
+3. Run ```make all``` to clean output directories, download source data and build analytic file
+
+---
 ### Pending Improvements
-1. Update plotting to use preprocessing program outputs
+1. Update plotting to use match preprocessing inputs
 2. Update plotting to interactive dashboard
 3. Normalize per-game data to control for within-season effects (e.g. rule changes)
 4. Elite-system-fraud with multi-category logistic regression
