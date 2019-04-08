@@ -1,9 +1,9 @@
 .PHONY: clean src_data
 
-bgn_yr = 2002
+bgn_yr = 2017
 end_yr = 2018
 
-all: data/processed/qb_season_final.csv
+all: clean data/processed/qb_season_final.csv
 
 clean:
 	rm -f data/raw/*.csv
