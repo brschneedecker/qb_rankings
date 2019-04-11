@@ -15,6 +15,7 @@ import os
 import re
 import glob
 import click
+import datetime
 
 def import_data(filepath: str):
 	"""
@@ -85,7 +86,7 @@ def calc_qb_wins(qb_record: str) -> float:
 
 	Args:
 	  - qb_record: String in the format W-L-T, where W, L, and T
-	               are numbers representing Wins, Losses, and Ties
+				   are numbers representing Wins, Losses, and Ties
 
 	Returns:
 	  - wins: number of wins, float
@@ -144,14 +145,14 @@ def clean_pfr(src_df, year: int):
 	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
 
 	# fix player names to match Football Outsiders format
-	df["PlayerNew"] = [fix_player_name(player) for player in df["Player"]]
+	df["PlayerReformat"] = [fix_player_name(player) for player in df["Player"]]
 
 	# drop unneeded columns
 	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
 
 	# Rename columns
 	df = df.rename(index=str, columns={
-		"PlayerNew":"player",
+		"PlayerReformat":"player",
 		"Player":"player_full_name",
 		"4QC":"fourth_qtr_comebacks",
 		"ANY/A":"adj_net_yds_per_att",
@@ -268,6 +269,7 @@ def clean_otc(src_df, year: int):
 	"""
 
 	df = src_df.copy()
+
 	logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw OTC DataFrame: {}".format(year,df.columns))
 
@@ -372,6 +374,7 @@ def merge_all(df_list: list):
 
 	# Reorder columns
 	merged_df = merged_df[["player",
+			 "player_full_name",
 			 "team",
 			 "year",
 			 "age",
@@ -472,6 +475,15 @@ def main(outfile):
 	clean_df_list = [pfr_clean, fo_clean, otc_clean]
 	merged_df = merge_all(clean_df_list)
 
+	# import elite-system-fraud
+	esf_df = import_data("data/external/elite_system_fraud.csv")
+
+	# fix player name
+	esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
+
+	# merge elite-system-fraud finder file
+	merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
+
 	print("Info on final analytic file")
 	merged_df.info()
 
@@ -506,4 +518,5 @@ if __name__ == "__main__":
 
 	logger = logging.getLogger(__name__)
 
+	# begin execution
 	main()

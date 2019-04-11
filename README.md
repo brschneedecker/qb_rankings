@@ -9,9 +9,9 @@ NFL QB Analysis using Python 3
 ### Run Instructions
 1. Navigate to repo directory
 2. Update makefile bgn_yr and end_yr to get desired analysis period
-3. Run ```make all``` to clean output directories, download source data and build analytic file
-
+3. Run ```make all``` to clean output directories, download source data, and build analytic file
 ---
+
 ### Pending Improvements
 1. Update plotting to use match preprocessing inputs
 2. Update plotting to interactive dashboard

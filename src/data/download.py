@@ -10,6 +10,7 @@ import re
 import os
 import logging
 import click
+import datetime
 
 def get_season(base_html: str, year: int):
 	"""
