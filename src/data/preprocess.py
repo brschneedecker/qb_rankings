@@ -144,14 +144,15 @@ def clean_pfr(src_df, year: int):
 	df["Player"] = [re.sub("[*+]", "", player) for player in df["Player"]]
 
 	# fix player names to match Football Outsiders format
-	df["Player"] = [fix_player_name(player) for player in df["Player"]]
+	df["PlayerNew"] = [fix_player_name(player) for player in df["Player"]]
 
 	# drop unneeded columns
 	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
 
 	# Rename columns
 	df = df.rename(index=str, columns={
-		"Player":"player",
+		"PlayerNew":"player",
+		"Player":"player_full_name",
 		"4QC":"fourth_qtr_comebacks",
 		"ANY/A":"adj_net_yds_per_att",
 		"AY/A":"adj_yds_per_att",
