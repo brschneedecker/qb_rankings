@@ -27,6 +27,9 @@ def import_data(filepath: str):
 	Returns:
 	  - df: Imported DataFrame
 	"""
+
+	logger = logging.getLogger(__name__)
+
 	try:
 		df = pd.read_csv(filepath)
 	except FileNotFoundError as err:
@@ -91,6 +94,9 @@ def calc_qb_wins(qb_record: str) -> float:
 	Returns:
 	  - wins: number of wins, float
 	"""
+
+	logger = logging.getLogger(__name__)
+
 	try:
 		W_L_T = [float(value) for value in qb_record.split("-")]
 	except ValueError as err:
@@ -124,6 +130,8 @@ def clean_pfr(src_df, year: int):
 	Returns:
 	  - df: Cleaned Pro Football Reference data
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	df = src_df.copy()
 	logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
@@ -200,6 +208,8 @@ def clean_fo(src_df, year: int):
 	  - df: Cleaned Football Outsiders data
 	"""
 
+	logger = logging.getLogger(__name__)
+
 	df = src_df.copy()
 	logger.info("Dimensions of {} raw FO DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw FO DataFrame: {}".format(year, df.columns))
@@ -267,6 +277,8 @@ def clean_otc(src_df, year: int):
 	Returns:
 	  - df: Cleaned Over The Cap data
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	df = src_df.copy()
 
@@ -342,6 +354,8 @@ def merge_all(df_list: list):
 	Returns:
 	  - merged_df: Merged DataFrame at the QB-season level
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	for df in df_list:
 		logger.info("Dimensions of input DataFrame: {}".format(df.shape))
@@ -429,6 +443,9 @@ def output_analytic(src_df, outfile: str):
 	Returns:
 	  - outfile: filepath of exported file
 	"""
+
+	logger = logging.getLogger(__name__)
+
 	try:
 		src_df.to_csv(outfile, index=False)
 	except FileNotFoundError as err:
@@ -449,6 +466,8 @@ def main(outfile):
 
 	Returns: none
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	# Prepare Pro Footbal Reference data
 	try:
@@ -515,8 +534,6 @@ if __name__ == "__main__":
 						filemode="w",
 						level=logging.DEBUG,
 						format="%(levelname)s: %(asctime)s: %(message)s")
-
-	logger = logging.getLogger(__name__)
 
 	# begin execution
 	main()

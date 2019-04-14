@@ -24,6 +24,8 @@ def get_season(base_html: str, year: int):
 	  - df: DataFrame with extracted data
 	"""
 
+	logger = logging.getLogger(__name__)
+
 	html_path = base_html.format(year=year)
 
 	try:
@@ -40,6 +42,8 @@ def export_season(df, outfile: str):
 	"""
 	Export single season of data to .csv file
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	logger.info("Creating {}".format(outfile))
 
@@ -70,6 +74,8 @@ def get_all_seasons(bgn_yr: int, end_yr: int, base_html: str, outfile: str):
 	Return:
 	  - df: DataFrame object with downloaded data
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	# Generate list of years for which to download data
 	year_list = [year for year in range(bgn_yr, end_yr + 1)]
@@ -106,6 +112,8 @@ def main(bgn_yr, end_yr):
 
 	Returns: None
 	"""
+
+	logger = logging.getLogger(__name__)
 
 	logger.info("Starting program execution")
 
@@ -168,8 +176,6 @@ if __name__ == "__main__":
 						filemode="w",
 						level=logging.DEBUG,
 						format="%(levelname)s: %(asctime)s: %(message)s")
-
-	logger = logging.getLogger(__name__)
 
 	# begin execution
 	main()
