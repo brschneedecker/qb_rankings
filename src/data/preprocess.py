@@ -301,7 +301,7 @@ def clean_otc(src_df, year: int):
 	df["player"] = [fix_player_name(player) for player in df["Player"]]
 
 	# remove [$,] symbols from Salary Cap Value for conversion to numeric
-	df["salary_cap_value"] = [re.sub("[$]", "", value) for value in df["Salary Cap Value"]]
+	df["salary_cap_value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
 
 	# limit to desired columns
 	df = df[["player", "team", "year", "salary_cap_value"]]
