@@ -1,7 +1,8 @@
 """
-preprocess.py
+Preprocessing module for QB Rankings project
 
-Read in downloaded data and clean for analysis
+This program reads in data downloaded using download.py, performs data cleaning and reshaping 
+and combines data from multiple sources for later analysis.
 
 Data is read from the following sources:
   - Pro Football Reference
