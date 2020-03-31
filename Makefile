@@ -1,7 +1,7 @@
 .PHONY: clean src_data
 
 bgn_yr = 2002
-end_yr = 2018
+end_yr = 2019
 
 all: clean data/processed/qb_season_final.csv
 
