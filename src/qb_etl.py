@@ -1,8 +1,6 @@
 """
-Preprocessing module for QB Rankings project
-
-This program reads in data downloaded using download.py, performs data cleaning and reshaping 
-and combines data from multiple sources for later analysis.
+This program downloads and combines NFL quarterback data from
+multiple sources and outputs a .csv file with the final data
 
 Data is read from the following sources:
   - Pro Football Reference
@@ -17,6 +15,33 @@ import re
 import glob
 import click
 import datetime
+
+
+def download_season(base_html: str, year: int):
+	"""
+	Download a single season of HTML table data and return DataFrame
+
+	Args:
+	  - base_html: String, path to page with HTML table data
+	  - year: Year of data being pulled
+
+	Returns:
+	  - df: DataFrame with extracted data
+	"""
+
+	logger = logging.getLogger(__name__)
+
+	html_path = base_html.format(year=year)
+
+	try:
+		df = pd.read_html(html_path)[0]
+	except Exception as err:
+		logger.warning("Unsuccessful download from {}".format(html_path))
+	else:
+		logger.info("Download from {} complete".format(html_path))
+
+		return df
+
 
 def import_data(filepath: str):
 	"""
