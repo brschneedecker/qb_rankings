@@ -146,9 +146,9 @@ def calc_qb_wins(qb_record: str) -> float:
     return wins
 
 
-def clean_pfr(year: int):
+def extract_season_pfr(year: int):
     """
-    Clean Pro Football Reference data
+    Extract and clean a single season of Pro Football Reference data
 
     Args:
       - year: integer representing year of data being cleaned
@@ -220,9 +220,9 @@ def clean_pfr(year: int):
     return df
 
 
-def clean_fo(year: int):
+def extract_season_fo(year: int):
     """
-    Clean Football Outsiders data
+    Extract and clean a single season of Football Outsiders data
 
     Args:
       - year: integer representing year of data being cleaned
@@ -289,9 +289,9 @@ def clean_fo(year: int):
     return df
 
 
-def clean_otc(year: int):
+def extract_season_otc(year: int):
     """
-    Clean Over The Cap data
+    Extract and clean a single season of Over The Cap data
 
     Args:
       - year: integer representing year of data being cleaned
@@ -341,9 +341,9 @@ def clean_otc(year: int):
     return df
 
 
-def merge_year(year: int):
+def extract_season_all(year: int):
     """
-    Merge all files for a single year of data
+    Extract, clean, and combine data for a single season
 
     Args:
         pfr_df: Pro football reference data for a single year
@@ -353,9 +353,9 @@ def merge_year(year: int):
 
     logger = logging.getLogger(__name__)
 
-    pfr_df = clean_pfr(year)
-    fo_df = clean_fo(year)
-    otc_df = clean_otc(year)
+    pfr_df = extract_season_pfr(year)
+    fo_df = extract_season_fo(year)
+    otc_df = extract_season_otc(year)
 
     merged_df = pd.merge(pfr_df, fo_df, how="left", on=["player", "team"])
 
