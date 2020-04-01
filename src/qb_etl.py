@@ -219,12 +219,11 @@ def clean_pfr(year: int):
 	return df
 
 
-def clean_fo(src_df, year: int):
+def clean_fo(year: int):
 	"""
 	Clean Football Outsiders data
 
 	Args:
-	  - src_df: Raw Football Outsiders data
 	  - year: integer representing year of data being cleaned
 
 	Returns:
@@ -233,7 +232,10 @@ def clean_fo(src_df, year: int):
 
 	logger = logging.getLogger(__name__)
 
-	df = src_df.copy()
+	fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
+
+	df = download_season(fo_path, year)
+
 	logger.info("Dimensions of {} raw FO DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw FO DataFrame: {}".format(year, df.columns))
 
@@ -243,9 +245,6 @@ def clean_fo(src_df, year: int):
 		logger.info("Columns on {} FO DataFrame after rename: {}".format(year, df.columns))
 	else:
 		logger.info("Columns were not renamed")
-
-	# add column for year
-	df["year"] = year
 
 	# remove rows with columns names
 	df = df.loc[df["Player"] != "Player"]
@@ -271,7 +270,6 @@ def clean_fo(src_df, year: int):
 	# limit to columns of interest
 	df = df[["player", 
 			 "team", 
-			 "year", 
 			 "DYAR", 
 			 "YAR", 
 			 "DVOA", 
