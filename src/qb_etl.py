@@ -165,9 +165,6 @@ def clean_pfr(year: int):
 	logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw PFR DataFrame: {}".format(year, df.columns))
 
-	# add column for year
-	df["year"] = year
-
 	# drop interior header rows and restrict to starting QBs
 	df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
