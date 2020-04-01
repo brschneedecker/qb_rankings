@@ -145,12 +145,11 @@ def calc_qb_wins(qb_record: str) -> float:
 	return wins
 
 
-def clean_pfr(src_df, year: int):
+def clean_pfr(year: int):
 	"""
 	Clean Pro Football Reference data
 
 	Args:
-	  - src_df: Raw Pro Football Reference data
 	  - year: integer representing year of data being cleaned
 
 	Returns:
@@ -159,7 +158,10 @@ def clean_pfr(src_df, year: int):
 
 	logger = logging.getLogger(__name__)
 
-	df = src_df.copy()
+	pfr_path = "https://www.pro-football-reference.com/years/{year}/passing.htm"
+
+	df = download_season(pfr_path, year)
+
 	logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw PFR DataFrame: {}".format(year, df.columns))
 
@@ -180,11 +182,9 @@ def clean_pfr(src_df, year: int):
 
 	# fix player names to match Football Outsiders format
 	df["PlayerReformat"] = [fix_player_name(player) for player in df["Player"]]
+	
+	#df = df
 
-	# drop unneeded columns
-	df = df.drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
-
-	# Rename columns
 	df = df.rename(index=str, columns={
 		"PlayerReformat":"player",
 		"Player":"player_full_name",
@@ -211,7 +211,7 @@ def clean_pfr(src_df, year: int):
 		"Y/C":"yds_per_cmp",
 		"Y/G":"yds_per_game",
 		"Yds":"yds"
-		})
+		}).drop(["Rk", "Tm", "Pos", "QBrec"], axis=1)
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
@@ -343,7 +343,47 @@ def clean_otc(src_df, year: int):
 
 	return df
 
-
+def merge_year(pfr_df: pd.core.frame.DataFrame,
+               fo_df: pd.core.frame.DataFrame, 
+               otc_df: pd.core.frame.DataFrame):
+    """
+    Merge all files for a single year of data
+    
+    Args:
+        pfr_df: Pro football reference data for a single year
+        fo_df: Football Outsiders data for a single year
+        otc_df: Over the Cap data for a single year
+    """
+    
+    logger = logging.getLogger(__name__)
+    
+    merged_df = pd.merge(pfr_df, fo_df, 
+							 how="left", 
+							 on=["player", "team", "year"])
+    
+    pfr_fo_rows = merged_df.shape[0]
+    
+    # verify row count doesn't change between merges
+    try:
+        assert(pfr_fo_rows == merged_df.shape[0])
+    except AssertionError as err:
+        logger.exception("Record count changed after merge PFR-FO merge")
+        raise err
+    
+    merged_df = pd.merge(merged_df, otc_df, 
+							 how="left", 
+							 on=["player", "team", "year"])
+       
+    # verify row count doesn't change between merges
+    try:
+        assert(merged_df.shape[0] == pfr_fo_rows)
+    except AssertionError as err:
+        logger.exception("Record count changed after merge PFR-FO-OTC merge")
+        raise err
+        
+    return merged_df
+    
+    
 def clean_stack(clean_func, file_pattern: str):
 	"""
 	Clean yearly files and stack into aggregate file
@@ -357,7 +397,7 @@ def clean_stack(clean_func, file_pattern: str):
 	  - clean_stack: Stacked DataFrame of all cleaned data for a given
 					 file pattern
 	"""
-
+    
 	# get list of files to import
 	raw_files = glob.glob(file_pattern)
 
