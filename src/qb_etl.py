@@ -506,7 +506,7 @@ if __name__ == "__main__":
         print("Programs must be run with working directory set to 'qb_rankings'")
         raise err
 
-    logging.basicConfig(filename="src/logs/qb_etl_{:%Y-%m-%d}.log".format(datetime.now()),
+    logging.basicConfig(filename="logs/qb_etl_{:%Y-%m-%d_%H:%M:%S}.log".format(datetime.datetime.now()),
                         filemode="w",
                         level=logging.DEBUG,
                         format="%(levelname)s: %(asctime)s: %(message)s")
