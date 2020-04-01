@@ -6,6 +6,10 @@ Data is read from the following sources:
   - Pro Football Reference
   - Football Outsiders
   - Over The Cap
+
+External Crosswalks used are:
+  - data/external/team_name_xwalk.csv
+  - data/external/elite_system_fraud.csv
 """
 
 import pandas as pd
@@ -367,15 +371,28 @@ def extract_season_all(year: int):
     try:
         assert(pfr_df.shape[0] == pfr_fo_rows)
     except AssertionError as err:
-        logger.exception("Record count changed after merge PFR-FO merge")
+        logger.exception("Record count changed after PFR-FO merge")
         raise err
 
     merged_df = pd.merge(merged_df, otc_df, how="left", on=["player", "team"])
 
+    pfr_fo_otc_rows = merged_df.shape[0]
+
     try:
-        assert(merged_df.shape[0] == pfr_fo_rows)
+        assert(pfr_fo_rows == pfr_fo_otc_rows)
     except AssertionError as err:
-        logger.exception("Record count changed after merge PFR-FO-OTC merge")
+        logger.exception("Record count changed after PFR-FO-OTC merge")
+        raise err
+
+    # import, prep, and merge elite-system-fraud finder file
+    esf_df = import_data("data/external/elite_system_fraud.csv")
+    esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
+    merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
+
+    try:
+        assert(pfr_fo_otc_rows == merged_df.shape[0])
+    except AssertionError as err:
+        logger.exception("Record count changed after PFR-FO-OTC-ESF merge")
         raise err
 
     merged_df["year"] = year
@@ -417,9 +434,13 @@ def extract_season_all(year: int):
         "DVOA",
         "VOA",
         "efctv_yds",
-        "salary_cap_value"]]
+        "salary_cap_value",
+        "elite",
+        "system",
+        "fraud"]]
 
     return merged_df
+
 
 def get_all_seasons(bgn_yr: int, end_yr: int):
     """
@@ -432,7 +453,7 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
     Returns: DataFrame with all seasons of data between begin and end year
     """
     return pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
-    
+
 
 def output_analytic(src_df, outfile: str):
     """
@@ -457,8 +478,10 @@ def output_analytic(src_df, outfile: str):
 
 
 @click.command()
+@click.argument('bgn_yr')
+@click.argument('end_yr')
 @click.argument('outfile', type=click.Path())
-def main(outfile):
+def main(bgn_yr, end_yr, outfile):
     """
     Combine all data into QB-season level analytic file
 
@@ -468,47 +491,8 @@ def main(outfile):
     Returns: none
     """
 
-    logger = logging.getLogger(__name__)
-
-    # Prepare Pro Footbal Reference data
-    try:
-        pfr_clean = clean_stack(clean_pfr, "data/raw/qb_season_pfr*.csv")
-    except Exception as err:
-        logging.exception("Pro Football Reference data prep failed")
-        raise err
-
-    # Prepare Football Outsides data
-    try:
-        fo_clean = clean_stack(clean_fo, "data/raw/qb_season_fo*.csv")
-    except Exception as err:
-        logging.exception("Football Outsiders data prep failed")
-        raise err
-
-    # Prepare Over the Cap data
-    try:
-        otc_clean = clean_stack(clean_otc, "data/raw/qb_salary*.csv")
-    except Exception as err:
-        logging.exception("Over the Cap data prep failed")
-        raise err
-
-    # merge data, first item in list defines population for merge
-    clean_df_list = [pfr_clean, fo_clean, otc_clean]
-    merged_df = merge_all(clean_df_list)
-
-    # import elite-system-fraud
-    esf_df = import_data("data/external/elite_system_fraud.csv")
-
-    # fix player name
-    esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
-
-    # merge elite-system-fraud finder file
-    merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
-
-    print("Info on final analytic file")
-    merged_df.info()
-
-    # output final DataFrame to .csv file
-    output_analytic(merged_df, outfile)
+    df = get_all_seasons(bgn_yr, end_yr)
+    output_analytic(df, outfile)
 
 
 if __name__ == "__main__":
@@ -522,19 +506,9 @@ if __name__ == "__main__":
         print("Programs must be run with working directory set to 'qb_rankings'")
         raise err
 
-    # set name of log file
-    log_filename = "src/data/preprocess.log"
-
-    # overwite any existing log file
-    if os.path.exists(log_filename):
-        print("Overwriting log {}".format(log_filename))
-        os.remove(log_filename)
-
-    # set up logger
-    logging.basicConfig(filename=log_filename,
+    logging.basicConfig(filename="src/logs/qb_etl_{:%Y-%m-%d}.log".format(datetime.now()),
                         filemode="w",
                         level=logging.DEBUG,
                         format="%(levelname)s: %(asctime)s: %(message)s")
 
-    # begin execution
     main()
