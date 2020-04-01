@@ -287,12 +287,11 @@ def clean_fo(year: int):
 	return df
 
 
-def clean_otc(src_df, year: int):
+def clean_otc(year: int):
 	"""
 	Clean Over The Cap data
 
 	Args:
-	  - src_df: Raw Over The Cap data
 	  - year: integer representing year of data being cleaned
 
 	Returns:
@@ -301,13 +300,12 @@ def clean_otc(src_df, year: int):
 
 	logger = logging.getLogger(__name__)
 
-	df = src_df.copy()
+	otc_path = "https://overthecap.com/position/quarterback/{year}/"
+
+	df = download_season(otc_path, year)
 
 	logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
 	logger.info("Columns on {} raw OTC DataFrame: {}".format(year,df.columns))
-
-	# add column for year
-	df["year"] = year
 
 	# import team name crosswalk
 	xwalk_df = import_data("data/external/team_name_xwalk.csv")
@@ -325,10 +323,10 @@ def clean_otc(src_df, year: int):
 	df["salary_cap_value"] = [re.sub("[$,]", "", value) for value in df["Salary Cap Value"]]
 
 	# limit to desired columns
-	df = df[["player", "team", "year", "salary_cap_value"]]
+	df = df[["player", "team", "salary_cap_value"]]
 
 	# get row with maximum salary within a given player-team-year combo
-	df = df.groupby(["player", "team", "year"], as_index=False)["salary_cap_value"].max()
+	df = df.groupby(["player", "team"], as_index=False)["salary_cap_value"].max()
 
 	# convert columns with numeric data to numeric object type
 	df = df.apply(pd.to_numeric, errors="ignore")
