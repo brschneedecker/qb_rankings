@@ -346,9 +346,12 @@ def extract_season_all(year: int):
     Extract, clean, and combine data for a single season
 
     Args:
-        pfr_df: Pro football reference data for a single year
-        fo_df: Football Outsiders data for a single year
-        otc_df: Over the Cap data for a single year
+      - pfr_df: Pro football reference data for a single year
+      - fo_df: Football Outsiders data for a single year
+      - otc_df: Over the Cap data for a single year
+
+    Returns:
+      - merged_df: Single season of QB data, all sources merged
     """
 
     logger = logging.getLogger(__name__)
@@ -418,86 +421,18 @@ def extract_season_all(year: int):
 
     return merged_df
 
-
-def clean_stack(clean_func, file_pattern: str):
+def get_all_seasons(bgn_yr: int, end_yr: int):
     """
-    Clean yearly files and stack into aggregate file
+    Extract, clean, and combine data for all seasons between start and end year
 
     Args:
-      - clean_func: Function used to clean specified data
-      - file_pattern: String representing file path pattern to search for 
-                                      .csv files to import and clean
+      - bgn_yr: Lower bound of range of seasons to extract
+      - end_yr: Upper bound of range of seasons to extract
 
-    Returns:
-      - clean_stack: Stacked DataFrame of all cleaned data for a given
-                                     file pattern
+    Returns: DataFrame with all seasons of data between begin and end year
     """
-
-    # get list of files to import
-    raw_files = glob.glob(file_pattern)
-
-    # Create a list of cleaned DataFrames from the list of raw files
-    clean_list = [clean_func(import_data(file), file[-8:-4])
-                  for file in raw_files]
-
-    # combine list of DataFrames into a single DataFrame
-    clean_stack = pd.concat(clean_list, ignore_index=True)
-
-    return clean_stack
-
-
-def merge_all(df_list: list):
-    """
-    Merge a list of QB-season level DataFrames
-
-    Args:
-      - df_list: List of QB-season level DataFrames to merge
-
-    Returns:
-      - merged_df: Merged DataFrame at the QB-season level
-    """
-
-    logger = logging.getLogger(__name__)
-
-    for df in df_list:
-        logger.info("Dimensions of input DataFrame: {}".format(df.shape))
-
-    # base of merged DataFrame is first DataFrame in the list
-    merged_df = df_list[0]
-
-    # merge all DataFrames in the list
-    for i in range(1, len(df_list)):
-
-        # get DataFrame shape prior to merge
-        pre_merge_shape = merged_df.shape
-        logger.info("Dimensions of DataFrame after merge {}: {}".format(
-            i, pre_merge_shape))
-
-        # merge iTH DataFrame in list to aggregate DataFrame
-        merged_df = pd.merge(merged_df, df_list[i],
-                             how="left",
-                             on=["player", "team", "year"])
-
-        # get DataFrame shape after merge
-        post_merge_shape = merged_df.shape
-        logger.info("Dimensions of DataFrame after merge {}: {}".format(
-            i, post_merge_shape))
-
-        # verify row count doesn't change between merges
-        try:
-            assert(pre_merge_shape[0] == post_merge_shape[0])
-        except AssertionError as err:
-            logger.exception("Record count changed after merge")
-            raise err
-
-    # sort DataFrame by player, team, year
-    merged_df = merged_df.sort_values(["player", "year", "team"])
-
-    logger.info(
-        "Dimensions of final merged DataFrame: {}".format(merged_df.shape))
-
-    return merged_df
-
+    return pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
+    
 
 def output_analytic(src_df, outfile: str):
     """
