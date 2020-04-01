@@ -41,6 +41,7 @@ def download_season(base_html: str, year: int):
         df = pd.read_html(html_path)[0]
     except Exception as err:
         logger.warning("Unsuccessful download from {}".format(html_path))
+        raise err
     else:
         logger.info("Download from {} complete".format(html_path))
 
