@@ -398,8 +398,39 @@ def extract_season_all(year: int):
 
     merged_df["year"] = year
 
+    
+
+    return merged_df
+
+
+def get_all_seasons(bgn_yr: int, end_yr: int):
+    """
+    Extract, clean, and combine data for all seasons between start and end year
+
+    Args:
+      - bgn_yr: Lower bound of range of seasons to extract
+      - end_yr: Upper bound of range of seasons to extract
+
+    Returns: DataFrame with all seasons of data between begin and end year
+    """
+    return pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
+
+
+def output_analytic(src_df, outfile: str):
+    """
+    Output analytic file DataFrame as a .csv file
+
+    Args:
+      - src_df: DataFrame to export
+
+    Returns:
+      - outfile: filepath of exported file
+    """
+
+    logger = logging.getLogger(__name__)
+
     # Reorder columns
-    merged_df = merged_df[["player",
+    src_df = src_df[["player",
         "player_full_name",
         "year",
         "team",
@@ -440,35 +471,6 @@ def extract_season_all(year: int):
         "system",
         "fraud"]]
 
-    return merged_df
-
-
-def get_all_seasons(bgn_yr: int, end_yr: int):
-    """
-    Extract, clean, and combine data for all seasons between start and end year
-
-    Args:
-      - bgn_yr: Lower bound of range of seasons to extract
-      - end_yr: Upper bound of range of seasons to extract
-
-    Returns: DataFrame with all seasons of data between begin and end year
-    """
-    return pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
-
-
-def output_analytic(src_df, outfile: str):
-    """
-    Output analytic file DataFrame as a .csv file
-
-    Args:
-      - src_df: DataFrame to export
-
-    Returns:
-      - outfile: filepath of exported file
-    """
-
-    logger = logging.getLogger(__name__)
-
     try:
         src_df.to_csv(outfile, index=False)
     except FileNotFoundError as err:
@@ -492,7 +494,14 @@ def main(bgn_yr, end_yr, outfile):
     Returns: none
     """
 
-    df = get_all_seasons(bgn_yr, end_yr)
+    try:
+        bgn_yr_int = int(bgn_yr)
+        end_yr_int = int(end_yr)
+    except ValueError as err:
+        logger.exception("Invalid begin year or end year parameter {}, {}".format(bgn_yr, end_yr))
+        raise err
+
+    df = get_all_seasons(bgn_yr_int, end_yr_int)
     output_analytic(df, outfile)
 
 
