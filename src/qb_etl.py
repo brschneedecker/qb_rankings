@@ -8,8 +8,8 @@ Data is read from the following sources:
   - Over The Cap
 
 External Crosswalks used are:
-  - data/external/team_name_xwalk.csv
-  - data/external/elite_system_fraud.csv
+  - xwalks/team_name_xwalk.csv
+  - xwalks/elite_system_fraud.csv
 """
 
 import pandas as pd
@@ -315,7 +315,7 @@ def extract_season_otc(year: int):
     logger.info("Columns on {} raw OTC DataFrame: {}".format(year, df.columns))
 
     # import team name crosswalk
-    xwalk_df = import_data("data/external/team_name_xwalk.csv")
+    xwalk_df = import_data("xwalks/team_name_xwalk.csv")
 
     # merge crosswalk to get standardized team name for later merges
     df = pd.merge(df, xwalk_df, how="left", left_on="Team", right_on="mascot")
@@ -386,7 +386,7 @@ def extract_season_all(year: int):
         raise err
 
     # import, prep, and merge elite-system-fraud finder file
-    esf_df = import_data("data/external/elite_system_fraud.csv")
+    esf_df = import_data("xwalks/elite_system_fraud.csv")
     esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
     merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
 
