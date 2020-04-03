@@ -73,7 +73,8 @@ def import_data(filepath: str):
 
 def fix_team_name(team_orig: str) -> str:
     """
-    Remaps team names for teams that moved
+    Remaps team names for teams that moved or are 
+    named inconsistently across sources
 
     Args
       - team_orig: Original team name, string
@@ -83,8 +84,22 @@ def fix_team_name(team_orig: str) -> str:
     """
     if team_orig == "STL":
         team = "LAR"
-    elif team_orig == "SDG":
+    elif team_orig == "SDG" or team_orig == "SD":
         team = "LAC"
+    elif team_orig == "GNB":
+        team = "GB"
+    elif team_orig == "TAM":
+        team = "TB"
+    elif team_orig == "KAN":
+         team = "KC"
+    elif team_orig == "NOR":
+        team = "NO"
+    elif team_orig == "NWE":
+        team = "NE"
+    elif team_orig == "SFO":
+        team = "SF"
+    elif team_orig == "JAC":
+        team = "JAX"
     else:
         team = team_orig
     return team
@@ -105,8 +120,11 @@ def fix_player_name(full_name: str) -> str:
     # split player first and last name into a list
     first_last = full_name.split(" ")
 
-    # update first name to first initial
-    first_last[0] = first_last[0][0]
+    # update first name to first initial(s)
+    if first_last[0].find(".") != -1 or (len(first_last[0]) == 2 and first_last[0].isupper()):
+        first_last[0] = first_last[0].replace(".","")
+    else:        
+        first_last[0] = first_last[0][0]
 
     # combine first initial and last name into single string
     first_initial_last_name = "".join(first_last)
@@ -174,7 +192,7 @@ def extract_season_pfr(year: int):
     # drop interior header rows and restrict to starting QBs
     df = df.loc[(df["Tm"] != "Tm") & (df["Pos"] == "QB")]
 
-    # fix team names for teams that moved
+    # fix team names for teams that moved or are inconsistent across sources
     df["team"] = [fix_team_name(team) for team in df["Tm"]]
 
     # calculate QB wins
@@ -256,6 +274,9 @@ def extract_season_fo(year: int):
     # remove rows with columns names
     df = df.loc[df["Player"] != "Player"]
 
+    # fix team names for teams that moved or are inconsistent across sources
+    df["team"] = [fix_team_name(team) for team in df["Team"]]
+
     # remove % symbol from DVOA and VOA so values convert to numeric
     df["DVOA"] = [re.sub("[%]", "", value) for value in df["DVOA"]]
     df["VOA"] = [re.sub("[%]", "", value) for value in df["VOA"]]
@@ -265,14 +286,10 @@ def extract_season_fo(year: int):
     df["dpi_yards"] = [value.split("/")[1] for value in df["DPI"]]
 
     # remove extra characters so names match across years
-    df["Player"] = [re.sub("[.]", "", player) for player in df["Player"]]
+    df["player"] = [re.sub("[. ]", "", player) for player in df["Player"]]
 
     # Rename columns
-    df = df.rename(index=str, columns={
-        "Player": "player",
-        "Team": "team",
-        "EYds": "efctv_yds"
-    })
+    df = df.rename(index=str, columns={"EYds": "efctv_yds"})
 
     # limit to columns of interest
     df = df[["player",
