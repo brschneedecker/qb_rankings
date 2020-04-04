@@ -1,15 +1,11 @@
 """
 This program downloads and combines NFL quarterback data from
-multiple sources and outputs a .csv file with the final data
+multiple sources loads to a SQLite database
 
 Data is read from the following sources:
   - Pro Football Reference
   - Football Outsiders
   - Over The Cap
-
-External Crosswalks used are:
-  - xwalks/team_name_xwalk.csv
-  - xwalks/elite_system_fraud.csv
 """
 
 import pandas as pd
@@ -21,6 +17,7 @@ import click
 import datetime
 import sqlite3
 from sqlite3 import Error
+import qbconfig
 
 
 def download_season(base_html: str, year: int):
@@ -184,9 +181,7 @@ def extract_season_pfr(year: int):
 
     logger = logging.getLogger(__name__)
 
-    pfr_path = "https://www.pro-football-reference.com/years/{year}/passing.htm"
-
-    df = download_season(pfr_path, year)
+    df = download_season(qbconfig.pfr_base_html, year)
 
     logger.info("Dimensions of {} raw PFR DataFrame: {}".format(year, df.shape))
     logger.info("Columns on {} raw PFR DataFrame: {}".format(year, df.columns))
@@ -258,9 +253,7 @@ def extract_season_fo(year: int):
 
     logger = logging.getLogger(__name__)
 
-    fo_path = "https://www.footballoutsiders.com/stats/qb{year}"
-
-    df = download_season(fo_path, year)
+    df = download_season(qbconfig.fo_base_html, year)
 
     logger.info("Dimensions of {} raw FO DataFrame: {}".format(year, df.shape))
     logger.info("Columns on {} raw FO DataFrame: {}".format(year, df.columns))
@@ -326,15 +319,13 @@ def extract_season_otc(year: int):
 
     logger = logging.getLogger(__name__)
 
-    otc_path = "https://overthecap.com/position/quarterback/{year}/"
-
-    df = download_season(otc_path, year)
+    df = download_season(qbconfig.otc_base_html, year)
 
     logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
     logger.info("Columns on {} raw OTC DataFrame: {}".format(year, df.columns))
 
     # import team name crosswalk
-    xwalk_df = import_data("xwalks/team_name_xwalk.csv")
+    xwalk_df = import_data(qbconfig.team_name_xwalk)
 
     # merge crosswalk to get standardized team name for later merges
     df = pd.merge(df, xwalk_df, how="left", left_on="Team", right_on="mascot")
@@ -405,7 +396,7 @@ def extract_season_all(year: int):
         raise err
 
     # import, prep, and merge elite-system-fraud finder file
-    esf_df = import_data("xwalks/elite_system_fraud.csv")
+    esf_df = import_data(qbconfig.esf_xwalk)
     esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
     merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
 
@@ -506,8 +497,7 @@ def load_seasons_to_db(df, db_file: str, tbl_name: str):
 @click.command()
 @click.argument('bgn_yr')
 @click.argument('end_yr')
-@click.argument('outfile', type=click.Path())
-def main(bgn_yr, end_yr, outfile):
+def main(bgn_yr, end_yr):
     """
     Combine all data into QB-season level analytic file
 
@@ -526,7 +516,7 @@ def main(bgn_yr, end_yr, outfile):
 
     df = get_all_seasons(bgn_yr_int, end_yr_int)
 
-    load_seasons_to_db(df, "data/qb_sqlite.db", "qb_season")
+    load_seasons_to_db(df, qbconfig.db_file, "qb_season")
 
 
 if __name__ == "__main__":
@@ -540,7 +530,7 @@ if __name__ == "__main__":
         print("Programs must be run with working directory set to 'qb_rankings'")
         raise err
 
-    logging.basicConfig(filename="logs/qb_etl_{:%Y-%m-%d_%H:%M:%S}.log".format(datetime.datetime.now()),
+    logging.basicConfig(filename=qbconfig.etl_log.format(datetime.datetime.now()),
                         filemode="w",
                         level=logging.DEBUG,
                         format="%(levelname)s: %(asctime)s: %(message)s")
