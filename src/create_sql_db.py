@@ -8,6 +8,7 @@ References
 
 import sqlite3
 from sqlite3 import Error
+import click
 
 
 def create_connection(db_file):
@@ -38,9 +39,10 @@ def create_table(conn, create_table_sql):
     except Error as e:
         print(e)
  
- 
-def main():
-    database = r"data/qb_sqlite.db"
+
+@click.command()
+@click.argument('dbname', type=click.Path())
+def main(dbname):
  
     sql_create_qb_season_table = """ CREATE TABLE IF NOT EXISTS qb_season (
                                         player                  TEXT NOT NULL,
@@ -61,8 +63,8 @@ def main():
                                         sacks                   INTEGER NOT NULL,
                                         sack_yds                INTEGER NOT NULL,
                                         sack_pct                REAL NOT NULL,
-                                        dpi_count               INTEGER NOT NULL,
-                                        dpi_yards               INTEGER NOT NULL,
+                                        dpi_count               INTEGER NULL,
+                                        dpi_yards               INTEGER NULL,
                                         adj_yds_per_att         REAL NOT NULL,
                                         net_yds_per_att         REAL NOT NULL,
                                         adj_net_yds_per_att     REAL NOT NULL,
@@ -88,7 +90,7 @@ def main():
                                     ); """
  
     # create a database connection
-    conn = create_connection(database)
+    conn = create_connection(dbname)
  
     # create tables
     if conn is not None:
@@ -96,6 +98,8 @@ def main():
         create_table(conn, sql_create_qb_season_table)
     else:
         print("Error! cannot create the database connection.")
+
+    conn.close()
  
  
 if __name__ == '__main__':
