@@ -19,6 +19,8 @@ import re
 import glob
 import click
 import datetime
+import sqlite3
+from sqlite3 import Error
 
 
 def download_season(base_html: str, year: int):
@@ -415,8 +417,6 @@ def extract_season_all(year: int):
 
     merged_df["year"] = year
 
-    
-
     return merged_df
 
 
@@ -430,24 +430,10 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
 
     Returns: DataFrame with all seasons of data between begin and end year
     """
-    return pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
-
-
-def output_analytic(src_df, outfile: str):
-    """
-    Output analytic file DataFrame as a .csv file
-
-    Args:
-      - src_df: DataFrame to export
-
-    Returns:
-      - outfile: filepath of exported file
-    """
-
-    logger = logging.getLogger(__name__)
+    df = pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
 
     # Reorder columns
-    src_df = src_df[["player",
+    df = df[["player",
         "player_full_name",
         "year",
         "team",
@@ -488,14 +474,34 @@ def output_analytic(src_df, outfile: str):
         "system",
         "fraud"]]
 
-    try:
-        src_df.to_csv(outfile, index=False)
-    except FileNotFoundError as err:
-        logger.exception("Error saving file {}".format(outfile))
-        raise err
-    else:
-        logger.info("{} created successfully".format(outfile))
+    return df
 
+
+def load_seasons_to_db(df, db_file: str, tbl_name: str):
+    """
+    Load extracted QB seasons to database
+
+    Args:
+      - df: DataFrame to load to the database table
+      - db_file: Database file to load to
+      - tbl_name: Name of table where data will be loaded
+
+    Returns: None
+    """
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+
+        if conn is not None:
+            df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
+
+    except Error as e:
+        print(e)
+
+    finally:
+        conn.close()
+        
 
 @click.command()
 @click.argument('bgn_yr')
@@ -519,7 +525,8 @@ def main(bgn_yr, end_yr, outfile):
         raise err
 
     df = get_all_seasons(bgn_yr_int, end_yr_int)
-    output_analytic(df, outfile)
+
+    load_seasons_to_db(df, "data/qb_sqlite.db", "qb_season")
 
 
 if __name__ == "__main__":

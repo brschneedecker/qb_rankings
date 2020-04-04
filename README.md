@@ -15,11 +15,12 @@ NFL QB Analysis using Python 3
 
 ### TODO
 
-1. Fix team name mapping (e.g. GB vs. GNB)
-2. Build small database (SQL script with schema)
-3. Replace .csv construction with load to database
-4. Set up environment (yaml) file to handle dependencies/reproducibility
-5. Make data visualizations (Jupyter notebook?)
+1. Make config.py to store paths
+2. Update Makefile process for new database ETL
+2. Replace database creation Python with .sql script??
+3. Reorganize Makefile. "make db" should delete the existing DB.
+3. Set up environment (yaml) file to handle dependencies/reproducibility
+4. Make data visualizations (Jupyter notebook?)
 
 ---
 
