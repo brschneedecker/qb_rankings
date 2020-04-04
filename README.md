@@ -14,13 +14,11 @@ NFL QB Analysis using Python 3
 ------
 
 ### TODO
-
-1. Make config.py to store paths
-2. Update Makefile process for new database ETL
+1. Replace qbconfig.py with yaml file for config, update ETL to match
 2. Replace database creation Python with .sql script??
-3. Reorganize Makefile. "make db" should delete the existing DB.
-3. Set up environment (yaml) file to handle dependencies/reproducibility
-4. Make data visualizations (Jupyter notebook?)
+3. Error on duplicate primary key when loading data (UNIQUE(background_color,foreground_color))
+4. Set up environment (yaml) file to handle dependencies/reproducibility
+5. Make data visualizations (Jupyter notebook?)
 
 ---
 
