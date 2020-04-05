@@ -2,28 +2,26 @@
 NFL QB Analysis using Python 3
 
 ### Setup
-1. Clone this repo
+1. Run ```git clone https://github.com/brschneedecker/qb_rankings.git``` to clone this repo
 2. Install packages (see requirements.txt)
 ---
 
 ### Run Instructions
-1. Navigate to repo directory
-2. Update makefile bgn_yr and end_yr to get desired analysis period
-3. Run ```make all``` to clean output directories, extract source data, and build analytic file
+1. Run ```cd [clone path]/qb_rankings``` to navigate to the repo directory
+2. In Makefile, update ```bgn_yr``` and ```end_yr``` to get desired analysis period
+3. Run ```make db``` to create the database with empty tables
+4. Run ```make extract``` to extract all seasons between ```bgn_yr``` and ```end_yr``` inclusive and load to database
+5. ***TODO***: Run ```TBD``` to launch the interactive dashboard
 
 ------
 
 ### TODO
-1. Replace qbconfig.py with yaml file for config, update ETL to match
-2. Replace database creation Python with .sql script??
-3. Error on duplicate primary key when loading data (UNIQUE(background_color,foreground_color))
-4. Set up environment (yaml) file to handle dependencies/reproducibility
-5. Make data visualizations (Jupyter notebook?)
+* Make a dashboard: https://medium.com/swlh/dashboards-in-python-for-beginners-and-everyone-else-using-dash-f0a045a86644
+* Replace qbconfig.py with yaml file for configuring paths and names, update ETL to match
+* Set up environment (yaml) file to install dependencies
 
 ---
 
-### Pending Improvements
-1. Update plotting to use match preprocessing inputs
-2. Update plotting to interactive dashboard
-3. Normalize per-game data to control for within-season effects (e.g. rule changes)
-4. Elite-system-fraud with multi-category logistic regression
+### Potential Future Improvements
+* Normalize per-game data to control for within-season effects (e.g. rule changes)
+* Elite-system-fraud with multi-category logistic regression
