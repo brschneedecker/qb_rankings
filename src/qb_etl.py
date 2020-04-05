@@ -15,9 +15,8 @@ import re
 import glob
 import click
 import datetime
-import sqlite3
-from sqlite3 import Error
 import qbconfig
+import db_util
 
 
 def download_season(base_html: str, year: int):
@@ -480,18 +479,12 @@ def load_seasons_to_db(df, db_file: str, tbl_name: str):
     Returns: None
     """
 
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
+    conn = db_util.create_connection(qbconfig.db_file)
+    
+    if conn is not None:
+        df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
 
-        if conn is not None:
-            df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
-
-    except Error as e:
-        print(e)
-
-    finally:
-        conn.close()
+    conn.close()
         
 
 @click.command()
