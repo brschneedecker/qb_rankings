@@ -1,4 +1,8 @@
-numpy
-matplotlib
 pandas
 click
+logging
+os
+re
+click
+datetime
+sqlite3
