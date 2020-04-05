@@ -479,12 +479,17 @@ def load_seasons_to_db(df, db_file: str, tbl_name: str):
     Returns: None
     """
 
+    logger = logging.getLogger(__name__)
+
     conn = db_util.create_connection(qbconfig.db_file)
     
-    if conn is not None:
+    try:
         df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
-
-    conn.close()
+    except Exception as err:
+        logger.exception("Unable to load records to QB season table")
+        raise err
+    finally:
+        conn.close()
         
 
 @click.command()
