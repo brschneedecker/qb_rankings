@@ -3,10 +3,13 @@
 bgn_yr = 2017
 end_yr = 2018
 
-clean:
+rm_db:
 	rm -f data/*.db
 
-db: clean
+rm_logs:
+	rm -f logs/*.log
+
+db: rm_db
 	python3 src/db_create.py
 
 extract:
