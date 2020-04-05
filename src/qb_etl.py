@@ -12,7 +12,6 @@ import pandas as pd
 import logging
 import os
 import re
-import glob
 import click
 import datetime
 import qbconfig

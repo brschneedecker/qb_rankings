@@ -1,17 +1,11 @@
-"""
-This program creates a database for storing QB data
-
-References
-  - https://www.sqlitetutorial.net/sqlite-python/creating-database/
-  - https://www.sqlitetutorial.net/sqlite-python/create-tables/
-"""
+""" This program creates a database for storing QB data """
 
 import click
-import db_util
-import qbconfig
 import logging
 import os
 import datetime
+import db_util
+import qbconfig
 
 @click.command()
 def main():
