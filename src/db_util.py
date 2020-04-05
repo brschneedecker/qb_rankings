@@ -2,6 +2,7 @@
 
 import sqlite3
 from sqlite3 import Error
+import logging
 
 
 def create_connection(db_file):
@@ -15,14 +16,15 @@ def create_connection(db_file):
     Returns: 
        - Connection object or None
     """
+    logger = logging.getLogger(__name__)
+
     conn = None
     try:
         conn = sqlite3.connect(db_file)
         return conn
-    except Error as e:
-        print(e)
- 
-    return conn
+    except Error as err:
+        logger.exception("Unable to make connection to db {}".format(db_file))
+        raise err
 
 
 def create_table(conn, create_table_sql):
@@ -35,9 +37,12 @@ def create_table(conn, create_table_sql):
     
     Returns: none
     """
+    logger = logging.getLogger(__name__)
+
     try:
         c = conn.cursor()
         c.execute(create_table_sql)
-    except Error as e:
-        print(e)
+    except Error as err:
+        logger.exception("Unable to create table")
+        raise err
  

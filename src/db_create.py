@@ -9,10 +9,15 @@ References
 import click
 import db_util
 import qbconfig
+import logging
+import os
+import datetime
 
 @click.command()
 def main():
  
+    logger = logging.getLogger(__name__)
+
     sql_create_qb_season_table = """ CREATE TABLE IF NOT EXISTS qb_season (
                                         player                  TEXT NOT NULL,
                                         player_full_name        TEXT NOT NULL,
@@ -56,20 +61,36 @@ def main():
                                         fraud                   REAL NULL,
 
                                         PRIMARY KEY(player,year,team)
+                                        UNIQUE(player,year,team)
                                     ); """
  
     # create a database connection
     conn = db_util.create_connection(qbconfig.db_file)
  
-    # create tables
-    if conn is not None:
-        # create QB season table
+    # create QB season table
+    try:
         db_util.create_table(conn, sql_create_qb_season_table)
-    else:
-        print("Error! cannot create the database connection.")
-
-    conn.close()
+    except Exception as err:
+        logger.exception("Unable to create QB season table")
+        raise err
+    finally:
+        conn.close()
  
  
 if __name__ == '__main__':
+
+    # All directories in program are relative to repo root directory
+    # Verify current working directory is repo root directory before proceeding
+    try:
+        assert os.getcwd().split(os.sep)[-1] == "qb_rankings"
+    except AssertionError as err:
+        print("Working directory incorrect")
+        print("Programs must be run with working directory set to 'qb_rankings'")
+        raise err
+
+    logging.basicConfig(filename=qbconfig.db_create_log.format(datetime.datetime.now()),
+                        filemode="w",
+                        level=logging.DEBUG,
+                        format="%(levelname)s: %(asctime)s: %(message)s")
+                        
     main()
