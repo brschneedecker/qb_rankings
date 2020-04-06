@@ -15,13 +15,9 @@ NFL QB Analysis using Python 3
 
 ------
 
-### TODO
-* Make a dashboard: https://medium.com/swlh/dashboards-in-python-for-beginners-and-everyone-else-using-dash-f0a045a86644
+### Potential Future Improvements
 * Replace qbconfig.py with yaml file for configuring paths and names, update ETL to match
 * Set up environment (yaml) file to install dependencies
-
----
-
-### Potential Future Improvements
 * Normalize per-game data to control for within-season effects (e.g. rule changes)
 * Elite-system-fraud with multi-category logistic regression
+* Dashboard to show comparison plots
