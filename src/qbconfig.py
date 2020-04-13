@@ -1,7 +1,5 @@
 """
 This program contains globally used paths and names of external files used in processing.
-
-TODO: Convert to YAML config
 """
 
 # HTML paths for data extraction
