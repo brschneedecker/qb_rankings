@@ -1,10 +1,12 @@
 """
 This program contains globally used paths and names of external files used in processing.
+
+TODO: Convert to YAML config
 """
 
 # HTML paths for data extraction
 pfr_base_html = "https://www.pro-football-reference.com/years/{year}/passing.htm"
-fo_base_html = "https://www.footballoutsiders.com/stats/nfl/qb/{year}"
+fo_base_html = "https://www.footballoutsiders.com/stats/qb{year}"
 otc_base_html = "https://overthecap.com/position/quarterback/{year}/"
 
 # csv crosswalks used in ETL
