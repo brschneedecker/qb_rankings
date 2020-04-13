@@ -1,0 +1,4 @@
+name: qb_rankings
+channels:
+  - defaults
+prefix: /home/ben/anaconda3/envs/qb_rankings
