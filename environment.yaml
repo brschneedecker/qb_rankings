@@ -1,0 +1,8 @@
+name: qb_rankings_env
+channels:
+  - defaults
+dependencies:
+  - python=3.7.3
+  - pandas
+  - click
+  - lxml
