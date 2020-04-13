@@ -1,7 +1,7 @@
 .PHONY: qb_env all
 
-bgn_yr = 2017
-end_yr = 2018
+bgn_yr = 2002
+end_yr = 2019
 
 rm_db:
 	rm -f data/*.db

@@ -26,16 +26,16 @@ Create conda environment to install required packages
 conda env create --file=environment.yaml
 ```
 
-If you have issues with the environment after creation, you can remove it with the following
-
-```bash
-conda-env remove -n qb_rankings_env
-```
-
 Activate the newly created environment
 
 ```bash
 conda activate qb_rankings_env
+```
+
+If you have issues with the environment after creation, you can remove it with the following
+
+```bash
+conda-env remove -n qb_rankings_env
 ```
 
 ### Run Instructions
@@ -48,7 +48,7 @@ Run ```make db``` to Create the database with empty tables
 make db
 ```
 
-Extract all seasons between ```bgn_yr``` and ```end_yr``` inclusive and load to database.
+Extract all seasons between ```bgn_yr``` and ```end_yr``` inclusive and load to database. Default is 2002 through 2019 (current era division formats)
 
 ```bash
 make extract
