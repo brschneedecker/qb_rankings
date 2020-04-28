@@ -166,6 +166,41 @@ def calc_qb_wins(qb_record: str) -> float:
     return wins
 
 
+def standardize_season(df, columns):
+    """
+    Standardize column values within a season
+    """
+
+    new_df = df.copy()
+
+    for col in columns:
+        mean = new_df[col].mean()
+        std = new_df[col].std()
+        newcol = col + "_stdize"
+
+        new_df[newcol] = (new_df[col] - mean) / std
+
+    return new_df
+
+
+def scale_for_display(df, columns):
+    """
+    Rescale standardized values for display
+    multiply by the overall SD and add the overall mean.
+    """
+
+    new_df = df.copy()
+
+    for col in columns:
+        mean = new_df[col].mean()
+        std = new_df[col].std()
+        newcol = col + "_scaled"
+        stdcol = col + "_stdize"
+        new_df[newcol] = (new_df[stdcol] * std) + mean
+
+    return new_df
+
+
 def extract_season_pfr(year: int):
     """
     Extract and clean a single season of Pro Football Reference data
@@ -198,8 +233,6 @@ def extract_season_pfr(year: int):
 
     # fix player names to match Football Outsiders format
     df["PlayerReformat"] = [fix_player_name(player) for player in df["Player"]]
-
-    #df = df
 
     df = df.rename(index=str, columns={
         "PlayerReformat": "player",
@@ -419,7 +452,15 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
 
     Returns: DataFrame with all seasons of data between begin and end year
     """
-    df = pd.concat([extract_season_all(year) for year in range(bgn_yr, end_yr + 1)], ignore_index=True)
+
+    columns_to_rescale = ["yds_per_game", "yds_per_att"]
+
+    df_list = [extract_season_all(year) for year in range(bgn_yr, end_yr + 1)]
+    df_list = [standardize_season(df, columns_to_rescale) for df in df_list]
+
+    df = pd.concat(df_list, ignore_index=True)
+    
+    df = scale_for_display(df, columns_to_rescale)
 
     # Reorder columns
     df = df[["player",
@@ -435,7 +476,9 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
         "cmp_pct",
         "yds",
         "yds_per_game",
+        "yds_per_game_scaled",
         "yds_per_att",
+        "yds_per_att_scaled",
         "yds_per_cmp",
         "sacks",
         "sack_yds",
@@ -503,6 +546,8 @@ def main(bgn_yr, end_yr):
 
     Returns: none
     """
+
+    logger = logging.getLogger(__name__)
 
     try:
         bgn_yr_int = int(bgn_yr)
