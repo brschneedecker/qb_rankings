@@ -1,6 +1,40 @@
+"""
+Dashbboard for QB Rankings data visualizations
+
+Docs for Dash: https://dash.plotly.com/layout
+"""
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import pandas as pd
+import db_util
+import qbconfig
+
+
+def load_qb_data():
+    """ Load the data from the database"""
+    conn = db_util.create_connection(qbconfig.db_file)
+
+    df = pd.read_sql_query("SELECT * FROM qb_season", conn)
+
+    conn.close()
+    return df
+
+
+def generate_table(dataframe, max_rows=10):
+    return html.Table([
+        html.Thead(
+            html.Tr([html.Th(col) for col in dataframe.columns])
+        ),
+        html.Tbody([
+            html.Tr([
+                html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+            ]) for i in range(min(len(dataframe), max_rows))
+        ])
+    ])
+
+df = load_qb_data()
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -40,7 +74,10 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                 }
             }
         }
-    )
+    ),
+
+    html.H4(children='QB Season Data'),
+    generate_table(df)
 ])
 
 if __name__ == '__main__':
