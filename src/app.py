@@ -70,8 +70,16 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         'color': colors['text']
     }),
 
+    dcc.Dropdown(
+        options=[
+            {'label': 'New York City', 'value': 'NYC'},
+            {'label': u'Montréal', 'value': 'MTL'},
+            {'label': 'San Francisco', 'value': 'SF'}
+        ]
+    ),
+
     dcc.Graph(
-        id='life-exp-vs-gdp',
+        id='qb-compare',
         figure={
             'data': [
                 dict(
@@ -88,14 +96,15 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
                 ) for i in df.continent.unique()
             ],
             'layout': dict(
-                xaxis={'type': 'log', 'title': 'GDP Per Capita'},
-                yaxis={'title': 'Life Expectancy'},
+                xaxis={'type': 'log', 'title': 'Year'},
+                yaxis={'title': 'Metric'},
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest'
             )
         }
     ),
+
     dcc.Markdown(children=markdown_text,
         style={
             'color': colors['text']
