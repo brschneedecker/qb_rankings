@@ -42,22 +42,22 @@ conda-env remove -n qb_rankings_env
 
 Update ```bgn_yr``` and ```end_yr``` in Makefile to set the range of years of data to extract and load to the database.
 
-Run ```make db``` to Create the database with empty tables
+Make data and log folders if they don't already exist
 
 ```bash
-make db
+make dirs
 ```
 
-Extract all seasons between ```bgn_yr``` and ```end_yr``` inclusive and load to database. Default is 2002 through 2019 (current era division formats)
+Clean out the data and log folders
+
+```bash
+make clean
+```
+
+Extract all seasons between ```bgn_yr``` and ```end_yr``` inclusive and export csv. Default is 2002 through 2019 (current era division formats)
 
 ```bash
 make extract
-```
-
-If you need to recreate the database, run the following to delete it.
-
-```bash
-make rm_db
 ```
 
 The following will run all commands to recreate the database and reload data.
