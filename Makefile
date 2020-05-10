@@ -1,4 +1,4 @@
-.PHONY: dirs clean extract all
+.PHONY: qb_env all
 
 bgn_yr = 2002
 end_yr = 2019
@@ -7,11 +7,13 @@ dirs:
 	mkdir -p logs
 	mkdir -p data
 
-clean:
-	rm -f data/*
-	rm -f logs/*
+rm_db:
+	rm -f data/*.db
+
+db:
+	python3 src/db_create.py
 
 extract:
 	python3 src/qb_etl.py $(bgn_yr) $(end_yr)
 
-all: dirs clean extract
+all: dirs rm_db db extract
