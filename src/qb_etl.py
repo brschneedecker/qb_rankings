@@ -15,7 +15,6 @@ import re
 import click
 import datetime
 import qbconfig
-import db_util
 
 
 def download_season(base_html: str, year: int):
@@ -524,29 +523,24 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
     return df
 
 
-def load_seasons_to_db(df, db_file: str, tbl_name: str):
+def output_analytic(src_df, outfile: str):
     """
-    Load extracted QB seasons to database
-
+    Output analytic file DataFrame as a .csv file
     Args:
-      - df: DataFrame to load to the database table
-      - db_file: Database file to load to
-      - tbl_name: Name of table where data will be loaded
-
-    Returns: None
+      - src_df: DataFrame to export
+    Returns:
+      - outfile: filepath of exported file
     """
 
     logger = logging.getLogger(__name__)
 
-    conn = db_util.create_connection(qbconfig.db_file)
-    
     try:
-        df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
-    except Exception as err:
-        logger.exception("Unable to load records to QB season table")
+        src_df.to_csv(outfile, index=False)
+    except FileNotFoundError as err:
+        logger.exception("Error saving file {}".format(outfile))
         raise err
-    finally:
-        conn.close()
+    else:
+        logger.info("{} created successfully".format(outfile))
         
 
 @click.command()
@@ -573,7 +567,7 @@ def main(bgn_yr, end_yr):
 
     df = get_all_seasons(bgn_yr_int, end_yr_int)
 
-    load_seasons_to_db(df, qbconfig.db_file, "qb_season")
+    output_analytic(df, qbconfig.wide_af)
 
 
 if __name__ == "__main__":
