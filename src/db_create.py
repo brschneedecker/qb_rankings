@@ -17,6 +17,7 @@ def main():
                                         player_full_name        TEXT NOT NULL,
                                         year                    INTEGER NOT NULL,
                                         team                    TEXT NOT NULL,
+                                        division                TEXT NOT NULL,
                                         age                     INTEGER NOT NULL,
                                         games                   INTEGER NOT NULL,
                                         games_started           INTEGER NOT NULL,
