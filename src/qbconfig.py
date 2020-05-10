@@ -13,6 +13,7 @@ esf_xwalk = "xwalks/elite_system_fraud.csv"
 
 # Log files
 etl_log = "logs/qb_etl_{:%Y-%m-%d_%H:%M:%S}.log"
+db_create_log = "logs/db_create_{:%Y-%m-%d_%H:%M:%S}.log"
 
-# Output Data
-wide_af = "data/qb_season_wide.csv"
+# Database file
+db_file = "data/qb_sqlite.db"
