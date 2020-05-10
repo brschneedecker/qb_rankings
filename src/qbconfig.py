@@ -11,21 +11,21 @@ otc_base_html = "https://overthecap.com/position/quarterback/{year}/"
 team_name_xwalk = "xwalks/team_name_xwalk.csv"
 esf_xwalk = "xwalks/elite_system_fraud.csv"
 
-# Log files
+# Name pattern for log files
 etl_log = "logs/qb_etl_{:%Y-%m-%d_%H:%M:%S}.log"
 
-# Output Data File
+# Names of analytic files
 wide_af = "data/qb_season_wide.csv"
 long_af = "data/qb_season_long.csv"
 
-# ID columns
+# ID columns for transpose
 id_columns = ["player",
         "player_full_name",
         "year",
         "team",
         "division"]
 
-# Value Columns
+# Value columns for transpose
 value_columns = ["age",
         "games",
         "games_started",
