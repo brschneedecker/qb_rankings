@@ -14,7 +14,6 @@ import os
 import re
 import click
 import datetime
-
 import qbconfig
 
 
