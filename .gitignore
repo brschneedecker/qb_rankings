@@ -105,8 +105,6 @@ venv.bak/
 
 # exclude data from source control by default
 data/*
-!data/.gitkeep
 
 # exclude logs from source control by default
 logs/*
-!logs/.gitkeep
