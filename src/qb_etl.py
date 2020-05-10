@@ -355,15 +355,6 @@ def extract_season_otc(year: int):
     logger.info("Dimensions of {} raw OTC DataFrame: {}".format(year, df.shape))
     logger.info("Columns on {} raw OTC DataFrame: {}".format(year, df.columns))
 
-    # import team name crosswalk
-    xwalk_df = import_data(qbconfig.team_name_xwalk)
-
-    # merge crosswalk to get standardized team name for later merges
-    df = pd.merge(df, xwalk_df, how="left", left_on="Team", right_on="mascot")
-
-    # find a way to print this to log
-    team_map = df[["Team", "team"]].drop_duplicates()
-
     # fix player names to match Football Outsiders format
     df["player"] = [fix_player_name(player) for player in df["Player"]]
 
@@ -372,10 +363,10 @@ def extract_season_otc(year: int):
                               for value in df["Salary Cap Value"]]
 
     # limit to desired columns
-    df = df[["player", "team", "salary_cap_value"]]
+    df = df[["player", "Team", "salary_cap_value"]]
 
     # get row with maximum salary within a given player-team-year combo
-    df = df.groupby(["player", "team"], as_index=False)[
+    df = df.groupby(["player", "Team"], as_index=False)[
         "salary_cap_value"].max()
 
     # convert columns with numeric data to numeric object type
@@ -405,7 +396,11 @@ def extract_season_all(year: int):
     pfr_df = extract_season_pfr(year)
     fo_df = extract_season_fo(year)
     otc_df = extract_season_otc(year)
+    xwalk_df = import_data(qbconfig.team_name_xwalk)
 
+    ###########################################################################################
+
+    # PFR-to-FO merge
     merged_df = pd.merge(pfr_df, fo_df, how="left", on=["player", "team"])
 
     pfr_fo_rows = merged_df.shape[0]
@@ -416,25 +411,44 @@ def extract_season_all(year: int):
         logger.exception("Record count changed after PFR-FO merge")
         raise err
 
-    merged_df = pd.merge(merged_df, otc_df, how="left", on=["player", "team"])
+    ###########################################################################################
 
-    pfr_fo_otc_rows = merged_df.shape[0]
+    # PFR-FO to xwalk merge
+    merged_df = pd.merge(merged_df, xwalk_df, how="left", left_on="team", right_on="team")
+
+    pfr_fo_xwalk_rows = merged_df.shape[0]
 
     try:
-        assert(pfr_fo_rows == pfr_fo_otc_rows)
+        assert(pfr_fo_rows == pfr_fo_xwalk_rows)
     except AssertionError as err:
-        logger.exception("Record count changed after PFR-FO-OTC merge")
+        logger.exception("Record count changed after PFR-FO-XWALK merge")
         raise err
 
-    # import, prep, and merge elite-system-fraud finder file
+    ###########################################################################################
+
+    # PFR-FO-XWALK to OTC merge
+    merged_df = pd.merge(merged_df, otc_df, how="left", left_on=["player", "mascot"], right_on=["player", "Team"])
+
+    pfr_fo_xwalk_otc_rows = merged_df.shape[0]
+
+    try:
+        assert(pfr_fo_xwalk_rows == pfr_fo_xwalk_otc_rows)
+    except AssertionError as err:
+        logger.exception("Record count changed after PFR-FO-XWALK-OTC merge")
+        raise err
+
+    ###########################################################################################
+
+    # PFR-FO-XWALK-OTC to ESF merge
+
     esf_df = import_data(qbconfig.esf_xwalk)
     esf_df["player"] = [fix_player_name(name) for name in esf_df["player"]]
     merged_df = pd.merge(merged_df, esf_df, how="left", on=["player"])
 
     try:
-        assert(pfr_fo_otc_rows == merged_df.shape[0])
+        assert(pfr_fo_xwalk_otc_rows == merged_df.shape[0])
     except AssertionError as err:
-        logger.exception("Record count changed after PFR-FO-OTC-ESF merge")
+        logger.exception("Record count changed after PFR-FO-XWALK-OTC-ESF merge")
         raise err
 
     merged_df["year"] = year
@@ -467,6 +481,7 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
         "player_full_name",
         "year",
         "team",
+        "division",
         "age",
         "games",
         "games_started",
