@@ -475,51 +475,6 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
     
     df = scale_for_display(df, columns_to_rescale)
 
-    # Reorder columns
-    df = df[["player",
-        "player_full_name",
-        "year",
-        "team",
-        "division",
-        "age",
-        "games",
-        "games_started",
-        "qb_wins",
-        "att",
-        "cmp",
-        "cmp_pct",
-        "yds",
-        "yds_per_game",
-        "yds_per_game_scaled",
-        "yds_per_att",
-        "yds_per_att_scaled",
-        "yds_per_cmp",
-        "sacks",
-        "sack_yds",
-        "sack_pct",
-        "dpi_count",
-        "dpi_yards",
-        "adj_yds_per_att",
-        "net_yds_per_att",
-        "adj_net_yds_per_att",
-        "td",
-        "td_pct",
-        "int",
-        "int_pct",
-        "fourth_qtr_comebacks",
-        "game_winning_drives",
-        "qb_rating",
-        "QBR",
-        "DYAR",
-        "YAR",
-        "DVOA",
-        "VOA",
-        "efctv_yds",
-        "salary_cap_value",
-        "elite",
-        "system",
-        "fraud"]]
-
     return df
 
 
@@ -565,9 +520,11 @@ def main(bgn_yr, end_yr):
         logger.exception("Invalid begin year or end year parameter {}, {}".format(bgn_yr, end_yr))
         raise err
 
-    df = get_all_seasons(bgn_yr_int, end_yr_int)
+    df_wide = get_all_seasons(bgn_yr_int, end_yr_int)[qbconfig.all_columns]
+    output_analytic(df_wide, qbconfig.wide_af)
 
-    output_analytic(df, qbconfig.wide_af)
+    df_long = pd.melt(df_wide, id_vars=qbconfig.id_columns, value_vars=qbconfig.value_columns)
+    output_analytic(df_long, qbconfig.long_af)
 
 
 if __name__ == "__main__":
