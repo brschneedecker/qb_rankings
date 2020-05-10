@@ -524,56 +524,24 @@ def get_all_seasons(bgn_yr: int, end_yr: int):
     return df
 
 
-def load_seasons_to_db(df, db_file: str, tbl_name: str):
+def output_analytic(src_df, outfile: str):
     """
-    Load extracted QB seasons to database
-
+    Output analytic file DataFrame as a .csv file
     Args:
-      - df: DataFrame to load to the database table
-      - db_file: Database file to load to
-      - tbl_name: Name of table where data will be loaded
-
-    Returns: None
-    """
-
-    logger = logging.getLogger(__name__)
-
-    conn = db_util.create_connection(qbconfig.db_file)
-    
-    try:
-        df.to_sql(tbl_name, con=conn, if_exists='append', index=False)
-    except Exception as err:
-        logger.exception("Unable to load records to QB season table")
-        raise err
-    finally:
-        conn.close()
-        
-
-@click.command()
-@click.argument('bgn_yr')
-@click.argument('end_yr')
-def main(bgn_yr, end_yr):
-    """
-    Combine all data into QB-season level analytic file
-
-    Args:
-      - outfile: Name of cleaned analytic file
-
-    Returns: none
+      - src_df: DataFrame to export
+    Returns:
+      - outfile: filepath of exported file
     """
 
     logger = logging.getLogger(__name__)
 
     try:
-        bgn_yr_int = int(bgn_yr)
-        end_yr_int = int(end_yr)
-    except ValueError as err:
-        logger.exception("Invalid begin year or end year parameter {}, {}".format(bgn_yr, end_yr))
+        src_df.to_csv(outfile, index=False)
+    except FileNotFoundError as err:
+        logger.exception("Error saving file {}".format(outfile))
         raise err
-
-    df = get_all_seasons(bgn_yr_int, end_yr_int)
-
-    load_seasons_to_db(df, qbconfig.db_file, "qb_season")
+    else:
+        logger.info("{} created successfully".format(outfile))
 
 
 if __name__ == "__main__":
