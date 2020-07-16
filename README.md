@@ -8,10 +8,10 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Installation
 
-Clone the repository
+Fork and clone the repository
 
 ```bash
-git clone https://github.com/brschneedecker/qb_rankings.git
+git clone https://github.com/[your username]/qb_rankings.git
 ```
 
 Navigate to the repo directory
@@ -35,7 +35,7 @@ conda activate qb_rankings_env
 If you have issues with the environment after creation, you can remove it with the following
 
 ```bash
-conda-env remove -n qb_rankings_env
+conda env remove -n qb_rankings_env
 ```
 
 ### Run Instructions
