@@ -167,39 +167,36 @@ def clean_pfr_all(dfs):
 
   return clean_dfs
 
+"""### Merge Data"""
+
+def merge_pfr(dfs):
+  merge_df = None
+
+  for key in dfs.keys():
+
+    df = dfs[key]
+
+    if merge_df is None:
+      merge_df = df
+    else:
+      merge_df = merge_df.merge(df, how='left', on = ['player', 'tm'])
+
+    return merge_df
+
 """## Workflow"""
 
 # Pull data
 dfs = extract_pfr_all(2021)
 
 # Clean data
-cleans_dfs = clean_pfr_all(dfs)
+clean_dfs = clean_pfr_all(dfs)
 
-dfs['passing'].head(n=5)
+# Combine Data
+pfr_merge_df = merge_pfr(clean_dfs)
 
-dfs['rushing'].head(n=5)
-
-dfs['air_yards'].head(n=5)
-
-dfs['accuracy'].head(n=5)
-
-dfs['pressure'].head(n=5)
-
-dfs['play_type'].head(n=5)
-
-# merge_df = None
-
-# for key in dfs.keys():
-
-#   if merge_df is None:
-#     merge_df = dfs[key]
-#   else:
-#     merge_df = merge_df.merge(dfs[key], how='left', on = ['player', 'tm'])
-
-# merge_df
+pfr_merge_df.head(n=5)
 
 """## TODO
- - Merge datasets ```df1.merge(df2).merge(df3)```
  - Pull Over the cap data
  - pull FO data? (circumvent login wall)
 """
